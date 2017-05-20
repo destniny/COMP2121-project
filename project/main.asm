@@ -19,6 +19,8 @@
 .def temp2 = r24
 .def cmask = r25
 .def rmask = r26
+.def outFlag = r27
+.equ ODDEVENMASK = 0x01
 .equ PORTLDIR = 0xF0        ; PH7-4: output, PH3-0, input
 .equ INITCOLMASK = 0xEF     ; scan from the rightmost column,
 .equ INITROWMASK = 0x01     ; scan from the top row
@@ -67,6 +69,7 @@
 .org 0x0200
 DC: .byte 2               ; Two-byte counter for counting seconds.   
 TC:	.byte 2 
+OC: .byte 2
 
 .cseg
 .org 0x0000
@@ -166,6 +169,7 @@ RESET:
 	;initialize timer counter
 	clear TC
 	clear DC
+	clear OC
 
 	;initialize LCD
 	ser temp
@@ -234,15 +238,22 @@ Timer0OVF:
 	push YL
 	push r25
 	push r24
-	push r27
-	push r26
+
 checkFlagSet:				; if either flag is set - run the debounce timer
+	
 	cpi waitingFlag, 1
 	breq common 
+	cpi waitingFlag, 2
+	breq turnOnLED
+	cpi waitingFlag, 3
+	breq outStock
 	cpi debounceFlag, 1
 	breq newDebounce
+	
 
 common:
+	cpi debounceFlag, 1
+	breq jmpChangeScreen
 	lds r24, TC         ;load TC
 	lds r25, TC+1 
 	adiw r25:r24, 1
@@ -256,45 +267,89 @@ common:
 
 	rjmp Endif
 
-waiting:
-	cpi counter, 3
+turnOnLED:
+	ser temp
+	out PORTC, temp
+	ldi waitingFlag, 3
+
+outStock:
+	lds r24, OC         ;load TC
+	lds r25, OC+1 
+	adiw r25:r24, 1
+	cpi r24, low(3906)
+	ldi temp, high(3906)
+	cpc r25, temp
+	brne NotaHalfSecond
+	clear OC
+	cpi waitingFlag, 3
+	breq LED
+
+	rjmp Endif
+
+jmpChangeScreen:
+	jmp changeScreen
+
+LED:
+	cpi counter, 5
 	breq isThree
 	inc counter
-	out PORTC, counter
+	mov temp, counter
+	andi temp, ODDEVENMASK
+	cpi temp, 0
+	breq turnOnLED
+	clr temp
+	out PORTC, temp
+	rjmp Endif
+
+
+
+NotaSecond:
+	sts TC, r24
+	sts TC+1, r25
 	rjmp Endif
 	
 newDebounce:	
-	lds r26, DC
-    lds r27, DC+1
-    adiw r27:r26, 1 ; Increase the temporary counter by one.
+	lds r24, DC
+    lds r25, DC+1
+    adiw r25:r24, 1 ; Increase the temporary counter by one.
 
-    cpi r26, low(1000)		; Check if (r25:r24) = 390 ; 7812 = 10^6/128/20 ; 50 milliseconds
+    cpi r24, low(1000)		; Check if (r25:r24) = 390 ; 7812 = 10^6/128/20 ; 50 milliseconds
     ldi temp, high(1000)		;390 = 10^6/128/20 
-    cpc temp, r27
+    cpc temp, r25
     brne notHundred			; 100 milliseconds have not passed
 	clear DC
 	clr debounceFlag
 			;	once 100 milliseconds have passed, set the debounceFlag to 0	; Reset the debounce counter.
     rjmp EndIF
 
+waiting:
+	cpi counter, 3
+	breq isThree
+	inc counter
+	out PORTC, counter
+	rjmp Endif
+
 isThree:
 	clr waitingFlag
 	clr counter
 	out PORTC, counter
-	rjmp changeScreen
+	rjmp jmpChangeScreen
+
+
 
 notHundred: 		; Store the new value of the debounce counter.
-	sts DC, r26
-	sts DC+1, r27
-	rjmp EndIF
+	sts DC, r24
+	sts DC+1, r25
+	rjmp Endif
 
-NotaSecond:
-	sts TC, r24
-	sts TC+1, r25
+NotaHalfSecond:
+	sts OC, r24
+	sts OC+1, r25
+	rjmp Endif
+
+
 
 Endif:
-	pop r26
-	pop r27
 	pop	r24
 	pop	r25
 	pop	YL
@@ -303,8 +358,8 @@ Endif:
 	out SREG, temp
 	reti
 
-
 changeScreen:
+	
 
 	do_lcd_command 0b00000001 ; clear display
 
@@ -321,9 +376,11 @@ changeScreen:
 	do_lcd_data 'm'
 
 	do_lcd_command 0b11000000	; break to the next line
-	ldi debounceFlag, 1
+	clr debounceFlag
+	clr waitingFlag
 	rcall sleep_5ms
 	rjmp Endif
+
 
 main:
 	;set timer interrupt
@@ -346,7 +403,9 @@ initKeypad:
 	clr temp
 	clr temp1
 	clr temp2
-	cpi waitingFlag, 1
+	cpi waitingFlag, 2
+	breq initKeypad
+	cpi waitingFlag, 3
 	breq initKeypad
 
 	; debounce check
@@ -443,17 +502,45 @@ zero:
     ldi temp1, 0          ; set to zero in binary
 	jmp convert_end
 
+goInitial:
+	jmp initKeypad
 
 convert_end:
-	out PORTC, temp1
+	;out PORTC, temp1
 	do_lcd_rdata temp1	; output current number
 	ldi debounceFlag, 1
-    rjmp initKeypad         	; restart the main loop
+	cpi waitingFlag, 1
+	breq goInitial
 
-inInventory:
+   ; rjmp initKeypad         	; restart the main loop
+
+
+;inInventory:
 	;compare if it is in inventory
 	;if is rjmp insertcoin
 	;if not rjmp outOfStock
 
 outOfStock:
-	
+
+	do_lcd_command 0b00000001 ; clear display
+
+	do_lcd_data 'O'
+	do_lcd_data 'u'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'o'
+	do_lcd_data 'f'
+	do_lcd_data ' '
+	do_lcd_data 's'
+	do_lcd_data 't'
+	do_lcd_data 'o'
+	do_lcd_data 'c'
+	do_lcd_data 'k'
+
+	do_lcd_command 0b11000000	; break to the next line
+
+	do_lcd_rdata temp1
+	rcall sleep_5ms
+	ldi waitingFlag, 2
+	rjmp initKeypad
+
