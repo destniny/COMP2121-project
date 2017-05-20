@@ -65,17 +65,33 @@
 	st Y, temp
 .endmacro
 
+.macro defitem
+	
+	.db @0, @1, @2, 0
+	.set T = PC
+	
+.endmacro
+
 .dseg
-.org 0x0200
 DC: .byte 2               ; Two-byte counter for counting seconds.   
 TC:	.byte 2 
 OC: .byte 2
 
 .cseg
+
+
 .org 0x0000
 	jmp RESET
-	jmp DEFAULT ; No handling for IRQ0.
-	jmp DEFAULT ; No handling for IRQ1.
+
+defitem "1",  "8",  "4"
+defitem "2",  "6",  "3"
+defitem "3",  "2",  "1"
+defitem "4",  "3",  "8"
+defitem	"5",  "0",  "2"
+defitem "6",  "9",  "9"
+defitem "7",  "1",  "4"
+defitem "8",  "5",  "3"
+defitem "9",  "6",  "2"
 
 .org OVF0addr
 	jmp Timer0OVF ; Jump to the interrupt handler for
@@ -159,6 +175,11 @@ RESET:
 	ldi YH, high(RAMEND)
 	out SPH, YH
 	out SPL, YL				;reset SP
+
+	;initialize Z
+	ldi ZH, high(T << 1)
+	ldi ZL, low(T << 1)
+	
 
 	;initilize LED
     ser temp
@@ -515,7 +536,7 @@ convert_end:
    ; rjmp initKeypad         	; restart the main loop
 
 
-;inInventory:
+inInventory:
 	;compare if it is in inventory
 	;if is rjmp insertcoin
 	;if not rjmp outOfStock

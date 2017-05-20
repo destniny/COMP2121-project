@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Sat May 20 10:24:14 2017
+AVRASM ver. 2.2.6  C:\Users\ут\Desktop\project\project\main.asm Sat May 20 12:10:39 2017
 
 
 EQU  SIGNATURE_000 0000001e
@@ -1384,8 +1384,9 @@ DSEG DC           00000200
 DSEG TC           00000202
 DSEG OC           00000204
 CSEG RESET        00000063
+SET  T            00000014
+CSEG Timer0OVF    000000fd
 CSEG DEFAULT      00000032
-CSEG Timer0OVF    000000f9
 CSEG lcd_command  00000033
 CSEG sleep_1ms    00000054
 CSEG lcd_data     0000003a
@@ -1395,32 +1396,32 @@ EQU  F_CPU        00f42400
 EQU  DELAY_1MS    00000f9c
 CSEG delayloop_1ms 00000058
 CSEG sleep_5ms    0000005d
-CSEG main         00000194
-CSEG end          000000f8
-CSEG checkFlagSet 000000ff
-CSEG common       00000107
-CSEG turnOnLED    0000011a
-CSEG outStock     0000011d
-CSEG newDebounce  0000013f
-CSEG jmpChangeScreen 0000012e
-CSEG NotaSecond   0000013a
-CSEG waiting      0000014f
-CSEG Endif        00000162
-CSEG NotaHalfSecond 0000015d
-CSEG LED          00000130
-CSEG changeScreen 00000169
-CSEG isThree      00000154
-CSEG notHundred   00000158
-CSEG initKeypad   0000019f
-CSEG colloop      000001aa
-CSEG delay        000001af
-CSEG nextcol      000001c1
-CSEG rowloop      000001b8
-CSEG convert      000001c5
-CSEG letters      000001d0
-CSEG symbols      000001d2
-CSEG convert_end  000001df
-CSEG star         000001d8
-CSEG zero         000001da
-CSEG goInitial    000001dd
-CSEG outOfStock   000001e6
+CSEG main         00000198
+CSEG end          000000fc
+CSEG checkFlagSet 00000103
+CSEG common       0000010b
+CSEG turnOnLED    0000011e
+CSEG outStock     00000121
+CSEG newDebounce  00000143
+CSEG jmpChangeScreen 00000132
+CSEG NotaSecond   0000013e
+CSEG waiting      00000153
+CSEG Endif        00000166
+CSEG NotaHalfSecond 00000161
+CSEG LED          00000134
+CSEG changeScreen 0000016d
+CSEG isThree      00000158
+CSEG notHundred   0000015c
+CSEG initKeypad   000001a3
+CSEG colloop      000001ae
+CSEG delay        000001b3
+CSEG nextcol      000001c5
+CSEG rowloop      000001bc
+CSEG convert      000001c9
+CSEG letters      000001d4
+CSEG symbols      000001d6
+CSEG convert_end  000001e3
+CSEG star         000001dc
+CSEG zero         000001de
+CSEG goInitial    000001e1
+CSEG outOfStock   000001ea
