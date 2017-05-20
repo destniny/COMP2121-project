@@ -19,7 +19,7 @@
 .def temp2 = r24
 .def cmask = r25
 .def rmask = r26
-.def outFlag = r27
+.def temp3 = r27
 .equ ODDEVENMASK = 0x01
 .equ PORTLDIR = 0xF0        ; PH7-4: output, PH3-0, input
 .equ INITCOLMASK = 0xEF     ; scan from the rightmost column,
@@ -65,23 +65,40 @@
 	st Y, temp
 .endmacro
 
+.macro defitem
+	
+	.db @0, @1
+	.set T = PC
+	
+.endmacro
+
 .dseg
-.org 0x0200
 DC: .byte 2               ; Two-byte counter for counting seconds.   
 TC:	.byte 2 
 OC: .byte 2
+QUANTITY: .byte 9
 
 .cseg
+
+
 .org 0x0000
 	jmp RESET
-	jmp DEFAULT ; No handling for IRQ0.
-	jmp DEFAULT ; No handling for IRQ1.
+
+defitem "8",  "4"  ;9  coin  quantity
+defitem "6",  "3"  ;8
+defitem "2",  "1"  ;7
+defitem "3",  "8"  ;6
+defitem	"0",  "2"  ;5
+defitem "9",  "9"  ;4
+defitem "1",  "4"  ;3
+defitem "5",  "3"  ;2
+defitem "6",  "2"  ;1
 
 .org OVF0addr
 	jmp Timer0OVF ; Jump to the interrupt handler for
 					; Timer0 overflow
 	jmp DEFAULT ; default service for all other interrupts.
-
+	
 DEFAULT: 
 	reti ; no service continued
 
@@ -159,7 +176,7 @@ RESET:
 	ldi YH, high(RAMEND)
 	out SPH, YH
 	out SPL, YL				;reset SP
-
+	
 	;initilize LED
     ser temp
 	out DDRC, temp			;Set port C to output
@@ -170,6 +187,7 @@ RESET:
 	clear TC
 	clear DC
 	clear OC
+	;clear Quantity
 
 	;initialize LCD
 	ser temp
@@ -313,8 +331,8 @@ newDebounce:
     lds r25, DC+1
     adiw r25:r24, 1 ; Increase the temporary counter by one.
 
-    cpi r24, low(1000)		; Check if (r25:r24) = 390 ; 7812 = 10^6/128/20 ; 50 milliseconds
-    ldi temp, high(1000)		;390 = 10^6/128/20 
+    cpi r24, low(2000)		; Check if (r25:r24) = 390 ; 7812 = 10^6/128/20 ; 50 milliseconds
+    ldi temp, high(2000)		;390 = 10^6/128/20 
     cpc temp, r25
     brne notHundred			; 100 milliseconds have not passed
 	clear DC
@@ -323,16 +341,16 @@ newDebounce:
     rjmp EndIF
 
 waiting:
+	inc counter
+	;out PORTC, counter
 	cpi counter, 3
 	breq isThree
-	inc counter
-	out PORTC, counter
 	rjmp Endif
 
 isThree:
 	clr waitingFlag
 	clr counter
-	out PORTC, counter
+	;out PORTC, counter
 	rjmp jmpChangeScreen
 
 
@@ -393,8 +411,29 @@ main:
 	out TCCR0B, temp		; Prescaling value=8
 	ldi temp, 1<<TOIE0		; Enable timeroverflow flag
 	sts TIMSK0, temp
-	sei						; Enable global interrupt
+	sei						; Enable global interrupt*/
 
+	;initialize Z
+	ldi ZH, high(T << 1)
+	ldi ZL, low(T << 1)
+	sbiw Z, 1
+	ldi YH, high(QUANTITY)
+	ldi YL, low(QUANTITY)
+	push counter
+	clr counter
+
+initQuantity:
+	;initialize the quantity
+	lpm temp,Z
+	subi temp, 48
+	sbiw Z, 1
+	inc counter
+	st Y+,temp
+	;subi temp, 48  ;price
+	cpi counter, 18
+	brne initQuantity
+
+	pop counter
 ;initKeypadClear:
 	;clr digit
 initKeypad:
@@ -484,6 +523,7 @@ letters:
     ;ldi temp1, 'A'
     ;add temp1, row          ; Get the ASCII value for the key
 	;clr temp1
+	ldi debounceFlag, 1
     jmp initKeypad
 
 symbols:
@@ -493,13 +533,16 @@ symbols:
     breq zero
     ;ldi temp1, '#'         ; if not we have hash
 	;clr temp1				; TEMP: not handling the hash now
+	ldi debounceFlag, 1
     jmp initKeypad
 star:
     ;ldi temp1, '*'          ; set to star
 	;clr temp1
+	ldi debounceFlag, 1
     jmp initKeypad
 zero:
-    ldi temp1, 0          ; set to zero in binary
+    ;ldi temp1, 0          ; set to zero in binary
+	ldi debounceFlag, 1
 	jmp convert_end
 
 goInitial:
@@ -507,21 +550,67 @@ goInitial:
 
 convert_end:
 	;out PORTC, temp1
-	do_lcd_rdata temp1	; output current number
+	;do_lcd_rdata temp1	; output current number
 	ldi debounceFlag, 1
 	cpi waitingFlag, 1
 	breq goInitial
+	push temp1
 
+	;subi temp1,48
+	;clr counter
    ; rjmp initKeypad         	; restart the main loop
 
 
-;inInventory:
+findItem:
+	ldi YH, high(QUANTITY)
+	ldi YL, low(QUANTITY)
+	;ldi temp, 6
 	;compare if it is in inventory
 	;if is rjmp insertcoin
 	;if not rjmp outOfStock
 
-outOfStock:
+inventory:
+	dec temp1
+	cpi temp1, 0
+	breq inStock
+	adiw Y, 2
+	rjmp inventory
+	
+inStock:
+	ld temp,Y+				;quantity
+	;mov temp3, temp
+	ld temp2, Y				;price
+	
+	cpi temp, 0
+	breq outOfStock
+	subi temp, 1
+	st -Y, temp
 
+insertCoin:
+	pop temp1
+	do_lcd_command 0b00000001 ; clear display
+
+	do_lcd_data 'I'
+	do_lcd_data 'n'
+	do_lcd_data 's'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'c'
+	do_lcd_data 'o'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 's'
+	;do_lcd_rdata temp3
+
+	do_lcd_command 0b11000000	; break to the next line
+
+	do_lcd_rdata temp2
+	jmp initKeypad
+
+outOfStock:
+	pop temp1
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'O'
@@ -543,4 +632,4 @@ outOfStock:
 	rcall sleep_5ms
 	ldi waitingFlag, 2
 	rjmp initKeypad
-
+	
