@@ -1,18 +1,18 @@
 <ASSEMBLER_INFO>
  <VERSION>2.2.6</VERSION>
  <DEVICE>"ATmega2560"</DEVICE>
- <WORKING_DIR>C:\Users\ут\Desktop\project\project\Debug</WORKING_DIR>
+ <WORKING_DIR>C:\Users\Edward\Desktop\project\project\Debug</WORKING_DIR>
  <INCLUDE_PATH>
-  <DIR>C:/7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc</DIR>
-  <DIR>C:\7.0\toolchain\avr8\avrassembler\Include</DIR>
+  <DIR>D:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc</DIR>
+  <DIR>D:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avrassembler\Include</DIR>
   <DIR></DIR>
  </INCLUDE_PATH>
- <SOURCE_FILE>C:\Users\ут\Desktop\project\project\main.asm</SOURCE_FILE>
+ <SOURCE_FILE>C:\Users\Edward\Desktop\project\project\main.asm</SOURCE_FILE>
  <INCLUDED_FILES>
-  <FILE>C:/7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc\m2560def.inc</FILE>
+  <FILE>D:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc\m2560def.inc</FILE>
  </INCLUDED_FILES>
  <OBJECT_FILES>
-  <FILE>C:\Users\ут\Desktop\project\project\Debug\project.obj</FILE>
+  <FILE>C:\Users\Edward\Desktop\project\project\Debug\project.obj</FILE>
  </OBJECT_FILES>
  <HEX_FILES>
   <FILE>project.hex</FILE>
@@ -22,53 +22,53 @@
   <FILE>project.lss</FILE>
  </OUTPUT_FILES>
  <LABELS>
-  <DC><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>77</LINE></DC>
-  <TC><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>78</LINE></TC>
-  <OC><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>79</LINE></OC>
-  <QUANTITY><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>80</LINE></QUANTITY>
-  <RESET><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>175</LINE></RESET>
-  <Timer0OVF><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>261</LINE></Timer0OVF>
-  <DEFAULT><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>103</LINE></DEFAULT>
-  <lcd_command><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>107</LINE></lcd_command>
-  <sleep_1ms><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>154</LINE></sleep_1ms>
-  <lcd_data><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>116</LINE></lcd_data>
-  <lcd_wait><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>128</LINE></lcd_wait>
-  <lcd_wait_loop><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>135</LINE></lcd_wait_loop>
-  <delayloop_1ms><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>159</LINE></delayloop_1ms>
-  <sleep_5ms><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>166</LINE></sleep_5ms>
-  <main><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>412</LINE></main>
-  <end><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>257</LINE></end>
-  <checkFlagSet><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>269</LINE></checkFlagSet>
-  <common><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>281</LINE></common>
-  <turnOnLED><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>297</LINE></turnOnLED>
-  <outStock><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>302</LINE></outStock>
-  <newDebounce><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>338</LINE></newDebounce>
-  <jmpChangeScreen><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>316</LINE></jmpChangeScreen>
-  <NotaSecond><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>333</LINE></NotaSecond>
-  <waiting><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>352</LINE></waiting>
-  <Endif><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>379</LINE></Endif>
-  <NotaHalfSecond><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>372</LINE></NotaHalfSecond>
-  <LED><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>319</LINE></LED>
-  <changeScreen><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>388</LINE></changeScreen>
-  <isThree><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>359</LINE></isThree>
-  <notHundred><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>367</LINE></notHundred>
-  <initQuantity><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>425</LINE></initQuantity>
-  <initKeypad><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>438</LINE></initKeypad>
-  <colloop><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>455</LINE></colloop>
-  <delay><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>462</LINE></delay>
-  <nextcol><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>486</LINE></nextcol>
-  <rowloop><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>476</LINE></rowloop>
-  <convert><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>491</LINE></convert>
-  <letters><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>521</LINE></letters>
-  <symbols><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>527</LINE></symbols>
-  <convert_end><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>546</LINE></convert_end>
-  <star><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>535</LINE></star>
-  <zero><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>539</LINE></zero>
-  <goInitial><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>543</LINE></goInitial>
-  <findItem><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>559</LINE></findItem>
-  <inventory><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>571</LINE></inventory>
-  <inStock><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>578</LINE></inStock>
-  <outOfStock><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>617</LINE></outOfStock>
-  <insertCoin><FILE>C:\Users\ут\Desktop\project\project\main.asm</FILE><LINE>591</LINE></insertCoin>
+  <DC><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>76</LINE></DC>
+  <TC><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>77</LINE></TC>
+  <OC><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>78</LINE></OC>
+  <QUANTITY><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>79</LINE></QUANTITY>
+  <RESET><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>174</LINE></RESET>
+  <Timer0OVF><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>252</LINE></Timer0OVF>
+  <DEFAULT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>102</LINE></DEFAULT>
+  <lcd_command><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>106</LINE></lcd_command>
+  <sleep_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>153</LINE></sleep_1ms>
+  <lcd_data><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>115</LINE></lcd_data>
+  <lcd_wait><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>127</LINE></lcd_wait>
+  <lcd_wait_loop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>134</LINE></lcd_wait_loop>
+  <delayloop_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>158</LINE></delayloop_1ms>
+  <sleep_5ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>165</LINE></sleep_5ms>
+  <main><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>403</LINE></main>
+  <end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>248</LINE></end>
+  <checkFlagSet><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>260</LINE></checkFlagSet>
+  <common><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>272</LINE></common>
+  <turnOnLED><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>288</LINE></turnOnLED>
+  <outStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>293</LINE></outStock>
+  <newDebounce><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>329</LINE></newDebounce>
+  <jmpChangeScreen><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>307</LINE></jmpChangeScreen>
+  <NotaSecond><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>324</LINE></NotaSecond>
+  <waiting><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>343</LINE></waiting>
+  <Endif><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>370</LINE></Endif>
+  <NotaHalfSecond><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>363</LINE></NotaHalfSecond>
+  <LED><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>310</LINE></LED>
+  <changeScreen><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>379</LINE></changeScreen>
+  <isThree><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>350</LINE></isThree>
+  <notHundred><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>358</LINE></notHundred>
+  <initQuantity><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>425</LINE></initQuantity>
+  <initKeypad><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>439</LINE></initKeypad>
+  <colloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>456</LINE></colloop>
+  <delay><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>463</LINE></delay>
+  <nextcol><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>487</LINE></nextcol>
+  <rowloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>477</LINE></rowloop>
+  <convert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>492</LINE></convert>
+  <letters><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>522</LINE></letters>
+  <symbols><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>529</LINE></symbols>
+  <convert_end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>551</LINE></convert_end>
+  <star><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>538</LINE></star>
+  <zero><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>543</LINE></zero>
+  <goInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>548</LINE></goInitial>
+  <findItem><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>564</LINE></findItem>
+  <inventory><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>572</LINE></inventory>
+  <inStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>579</LINE></inStock>
+  <outOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>612</LINE></outOfStock>
+  <insertCoin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>589</LINE></insertCoin>
  </LABELS>
 </ASSEMBLER_INFO>
