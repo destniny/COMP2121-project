@@ -85,14 +85,11 @@ QUANTITY: .byte 9
 .org 0x0000
 	jmp RESET
 
-
-
 .org INT0addr
    jmp PB0_Interrupt
 
 .org INT1addr
    jmp PB1_Interrupt
-   jmp DEFAULT
 
 defitem "8",  "4"  ;9  coin  quantity
 defitem "6",  "3"  ;8
@@ -107,10 +104,6 @@ defitem "6",  "2"  ;1
 .org OVF0addr
 	jmp Timer0OVF ; Jump to the interrupt handler for
 					; Timer0 overflow
-	jmp DEFAULT ; default service for all other interrupts.
-	
-DEFAULT: 
-	reti ; no service continued
 
 
 lcd_command:
@@ -264,7 +257,8 @@ RESET:
 end:
 	rjmp end
 
-
+;*******************************************************************
+;Time over flow
 Timer0OVF:
 	in temp, SREG
 	push temp			; Prologue starts.
@@ -275,19 +269,18 @@ Timer0OVF:
 
 checkFlagSet:				; if either flag is set - run the debounce timer
 	
-	cpi waitingFlag, 1
+	cpi waitingFlag, 1		; WF=1 starting screen
 	breq common 
-	cpi waitingFlag, 2
+	cpi waitingFlag, 2		; out of stock screen: 1.turn the led on
 	breq turnOnLED
-	cpi waitingFlag, 3
-	breq outStock
-	cpi debounceFlag, 1
+	cpi waitingFlag, 3		; out of stock screen: 2.turn the led off and on
+	breq button
+	cpi debounceFlag, 1		; WF=0 && DF=1: normal waiting but keypad pressed
 	breq newDebounce
-	
-
+							; WF=0 && DF=0: noremal waiting but nothing pressed
 common:
-	cpi debounceFlag, 1
-	breq jmpChangeScreen
+	cpi debounceFlag, 1		; WF=1 && DF=1: starting screen can be interrupt by 
+	breq jmpChangeScreen	; pressing keypad
 	lds r24, TC         ;load TC
 	lds r25, TC+1 
 	adiw r25:r24, 1
@@ -322,14 +315,12 @@ turnOnLED:
 
 button:
 	adiw r31:r30, 1
-	cpi r30, low(1700)
-	ldi temp, high(1700)
+	cpi r30, low(500)
+	ldi temp, high(500)
 	cpc r31, temp
 	brne outStock
-	ldi DebounceFlag, 2
+	ldi debounceFlag, 2
 outStock:
-	cpi debounceFlag, 2
-	breq jmpChangeScreen
 	lds r24, OC         ;load TC
 	lds r25, OC+1 
 	adiw r25:r24, 1
@@ -338,10 +329,11 @@ outStock:
 	cpc r25, temp
 	brne NotaHalfSecond
 	clear OC
-	cpi waitingFlag, 3
-	breq LED
+	;cpi waitingFlag, 3
+	rjmp LED
+	;breq LED
 
-	rjmp Endif
+	;rjmp Endif
 
 jmpChangeScreen:
 	jmp changeScreen
@@ -360,8 +352,6 @@ newDebounce:
 			;	once 100 milliseconds have passed, set the debounceFlag to 0	; Reset the debounce counter.
     rjmp EndIF
 
-
-
 LED:
 	cpi counter, 5
 	breq isThree
@@ -376,6 +366,7 @@ LED:
 
 isThree:
 	clr waitingFlag
+	clr debounceFlag
 	clr counter
 	;out PORTC, counter
 	rjmp jmpChangeScreen
@@ -402,42 +393,49 @@ Endif:
 
 
 PB0_Interrupt:
-	clr temp3
-	cpi DebounceFlag, 2
-	brne return
+	cpi debounceFlag, 2				;if the buttons are still debouncing
+	brne return						;Do nothing
 	push temp
 	in temp, SREG
 	push temp
 	clr r30
 	clr r31
-	clr DebounceFlag
-	inc temp3
 	pop temp
 	out SREG, temp
 	pop temp
-	cpi temp3, 0
-	brne jmpChangeScreen
-	reti
+	out PORTC, r30
+	rjmp ChangeScreen
 
 PB1_Interrupt:
-	clr temp3
-	cpi DebounceFlag, 2
+	cpi debounceFlag, 2
 	brne return
 	push temp
 	in temp, SREG
 	push temp
 	clr r30
 	clr r31
-	clr DebounceFlag
-	inc temp3
 	pop temp
 	out SREG, temp
 	pop temp
-	cpi temp3, 0
-	brne changeScreen
-	reti
+	out PORTC, r30
+	rjmp changeScreen
 
 return:
+	reti
+
+
+
+
+
+returnClear:
+	clear OC
+	clear DC
+	clear TC
+	clr r30
+	clr r31
+	clr debounceFlag
+	clr waitingFlag
+	rcall sleep_5ms
 	reti
 
 changeScreen:
@@ -456,12 +454,24 @@ changeScreen:
 	do_lcd_data 'm'
 
 	do_lcd_command 0b11000000	; break to the next line
+	cpi debounceFlag, 1
+	breq keepDebounce
+	cpi debounceFlag, 2
+	breq returnClear
 	clr debounceFlag
 	clr waitingFlag
 	rcall sleep_5ms
 	rjmp Endif
 
+keepDebounce:
+	clr waitingFlag
+	clear OC
+	clear TC
+	clear DC
+	rjmp newDebounce
 
+;interruption stuff ends
+;*****************************************************************************
 
 main:
 
@@ -503,6 +513,8 @@ initQuantity:
 	;subi temp, 48  ;price
 	cpi counter, 18
 	brne initQuantity
+	clr r30
+	clr r31
 
 	pop counter
 ;initKeypadClear:
@@ -620,10 +632,9 @@ goInitial:
 	jmp initKeypad
 
 convert_end:
-	;out PORTC, temp1
-	;do_lcd_rdata temp1	; output current number
-	ldi debounceFlag, 1
-	cpi waitingFlag, 1
+	do_lcd_rdata temp1
+	ldi debounceFlag, 1		; Key has been pressed value in TEMP1
+	cpi waitingFlag, 1		; if it's for starting screen just skip it
 	breq goInitial
 	push temp1
 
@@ -649,7 +660,7 @@ inventory:
 	
 inStock:
 	ld temp,Y+				;quantity
-	;mov temp3, temp
+	mov temp3, temp
 	ld temp2, Y				;price
 	
 	cpi temp, 0
@@ -673,7 +684,7 @@ insertCoin:
 	do_lcd_data 'i'
 	do_lcd_data 'n'
 	do_lcd_data 's'
-	;do_lcd_rdata temp3
+	do_lcd_rdata temp3
 
 	do_lcd_command 0b11000000	; break to the next line
 
