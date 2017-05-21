@@ -76,6 +76,7 @@
 DC: .byte 2               ; Two-byte counter for counting seconds.   
 TC:	.byte 2 
 OC: .byte 2
+;BC: .byte 2
 QUANTITY: .byte 9
 
 .cseg
@@ -83,6 +84,15 @@ QUANTITY: .byte 9
 
 .org 0x0000
 	jmp RESET
+
+
+
+.org INT0addr
+   jmp PB0_Interrupt
+
+.org INT1addr
+   jmp PB1_Interrupt
+   jmp DEFAULT
 
 defitem "8",  "4"  ;9  coin  quantity
 defitem "6",  "3"  ;8
@@ -187,7 +197,13 @@ RESET:
 	clear TC
 	clear DC
 	clear OC
+	;clear BC
 	;clear Quantity
+
+	;initialize PB0 & PB1 button
+	clr temp
+	out DDRB, temp	
+	out PORTB, temp			;Set pott D to input
 
 	;initialize LCD
 	ser temp
@@ -285,12 +301,35 @@ common:
 
 	rjmp Endif
 
+NotaSecond:
+	sts TC, r24
+	sts TC+1, r25
+	rjmp Endif
+
+waiting:
+	inc counter
+	;out PORTC, counter
+	cpi counter, 3
+	breq isThree
+	rjmp Endif
+
 turnOnLED:
 	ser temp
 	out PORTC, temp
 	ldi waitingFlag, 3
+	clr r30
+	clr r31
 
+button:
+	adiw r31:r30, 1
+	cpi r30, low(1700)
+	ldi temp, high(1700)
+	cpc r31, temp
+	brne outStock
+	ldi DebounceFlag, 2
 outStock:
+	cpi debounceFlag, 2
+	breq jmpChangeScreen
 	lds r24, OC         ;load TC
 	lds r25, OC+1 
 	adiw r25:r24, 1
@@ -307,25 +346,6 @@ outStock:
 jmpChangeScreen:
 	jmp changeScreen
 
-LED:
-	cpi counter, 5
-	breq isThree
-	inc counter
-	mov temp, counter
-	andi temp, ODDEVENMASK
-	cpi temp, 0
-	breq turnOnLED
-	clr temp
-	out PORTC, temp
-	rjmp Endif
-
-
-
-NotaSecond:
-	sts TC, r24
-	sts TC+1, r25
-	rjmp Endif
-	
 newDebounce:	
 	lds r24, DC
     lds r25, DC+1
@@ -340,11 +360,18 @@ newDebounce:
 			;	once 100 milliseconds have passed, set the debounceFlag to 0	; Reset the debounce counter.
     rjmp EndIF
 
-waiting:
-	inc counter
-	;out PORTC, counter
-	cpi counter, 3
+
+
+LED:
+	cpi counter, 5
 	breq isThree
+	inc counter
+	mov temp, counter
+	andi temp, ODDEVENMASK
+	cpi temp, 0
+	breq turnOnLED
+	clr temp
+	out PORTC, temp
 	rjmp Endif
 
 isThree:
@@ -352,8 +379,6 @@ isThree:
 	clr counter
 	;out PORTC, counter
 	rjmp jmpChangeScreen
-
-
 
 notHundred: 		; Store the new value of the debounce counter.
 	sts DC, r24
@@ -365,8 +390,6 @@ NotaHalfSecond:
 	sts OC+1, r25
 	rjmp Endif
 
-
-
 Endif:
 	pop	r24
 	pop	r25
@@ -376,9 +399,48 @@ Endif:
 	out SREG, temp
 	reti
 
-changeScreen:
-	
 
+
+PB0_Interrupt:
+	clr temp3
+	cpi DebounceFlag, 2
+	brne return
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr DebounceFlag
+	inc temp3
+	pop temp
+	out SREG, temp
+	pop temp
+	cpi temp3, 0
+	brne jmpChangeScreen
+	reti
+
+PB1_Interrupt:
+	clr temp3
+	cpi DebounceFlag, 2
+	brne return
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr DebounceFlag
+	inc temp3
+	pop temp
+	out SREG, temp
+	pop temp
+	cpi temp3, 0
+	brne changeScreen
+	reti
+
+return:
+	reti
+
+changeScreen:
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'S'
@@ -400,7 +462,16 @@ changeScreen:
 	rjmp Endif
 
 
+
 main:
+
+	ldi temp, (1<<ISC01 | 1<<ISC11)	;set failing edge for INT0 and INT1
+	sts EICRA, temp
+
+	in temp, EIMSK					
+	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
+	out EIMSK, temp
+
 	;set timer interrupt
 	clr counter
 	clr debounceFlag
@@ -633,3 +704,5 @@ outOfStock:
 	ldi waitingFlag, 2
 	rjmp initKeypad
 	
+
+
