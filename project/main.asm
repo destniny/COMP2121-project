@@ -190,7 +190,7 @@ RESET:
 	clear TC
 	clear DC
 	clear OC
-	;clear BC
+	;clear BC				; used to for buttons debounce
 	;clear Quantity
 
 	;initialize PB0 & PB1 button
@@ -259,6 +259,11 @@ end:
 
 ;*******************************************************************
 ;Time over flow
+
+.equ START_SCREEN = 1
+.equ OUT_OF_STOCK = 2
+.equ CHANGE_LED = 3
+
 Timer0OVF:
 	in temp, SREG
 	push temp			; Prologue starts.
@@ -267,18 +272,38 @@ Timer0OVF:
 	push r25
 	push r24
 
-checkFlagSet:				; if either flag is set - run the debounce timer
+checkFlagSet:
 	
-	cpi waitingFlag, 1		; WF=1 starting screen
-	breq common 
-	cpi waitingFlag, 2		; out of stock screen: 1.turn the led on
+	cpi waitingFlag, START_SCREEN		; WF=1 starting screen
+	breq starting 
+	cpi waitingFlag, OUT_OF_STOCK		; out of stock screen: 1.turn the led on
 	breq turnOnLED
-	cpi waitingFlag, 3		; out of stock screen: 2.turn the led off and on
-	breq button
-	cpi debounceFlag, 1		; WF=0 && DF=1: normal waiting but keypad pressed
+	cpi waitingFlag, CHANGE_LED			; out of stock screen: 2.turn the led off and on
+	breq outStock
+	cpi debounceFlag, 1					; WF=0 && DF=1: normal waiting but keypad pressed
 	breq newDebounce
-							; WF=0 && DF=0: noremal waiting but nothing pressed
-common:
+
+	rjmp Endif							; WF=0 && DF=0: noremal waiting but nothing pressed
+
+newDebounce:	
+	lds r24, DC
+    lds r25, DC+1
+    adiw r25:r24, 1			; Increase the temporary counter by one.
+
+    cpi r24, low(2000)		; disable keypad for 50ms
+    ldi temp, high(2000)	; DF=1
+    cpc temp, r25
+    brne notHundred			; 100 milliseconds have not passed
+	clear DC
+	clr debounceFlag		; renable keypad
+    rjmp EndIF
+
+notHundred: 		; Store the new value of the debounce counter.
+	sts DC, r24
+	sts DC+1, r25
+	rjmp Endif
+	
+starting:
 	cpi debounceFlag, 1		; WF=1 && DF=1: starting screen can be interrupt by 
 	breq jmpChangeScreen	; pressing keypad
 	lds r24, TC         ;load TC
@@ -289,7 +314,7 @@ common:
 	cpc r25, temp
 	brne NotaSecond
 	clear TC
-	cpi waitingFlag, 1
+	cpi waitingFlag, START_SCREEN		; recheck if it's still in starting screen
 	breq waiting
 
 	rjmp Endif
@@ -306,64 +331,6 @@ waiting:
 	breq isThree
 	rjmp Endif
 
-turnOnLED:
-	ser temp
-	out PORTC, temp
-	ldi waitingFlag, 3
-	clr r30
-	clr r31
-
-button:
-	adiw r31:r30, 1
-	cpi r30, low(500)
-	ldi temp, high(500)
-	cpc r31, temp
-	brne outStock
-	ldi debounceFlag, 2
-outStock:
-	lds r24, OC         ;load TC
-	lds r25, OC+1 
-	adiw r25:r24, 1
-	cpi r24, low(3906)
-	ldi temp, high(3906)
-	cpc r25, temp
-	brne NotaHalfSecond
-	clear OC
-	;cpi waitingFlag, 3
-	rjmp LED
-	;breq LED
-
-	;rjmp Endif
-
-jmpChangeScreen:
-	jmp changeScreen
-
-newDebounce:	
-	lds r24, DC
-    lds r25, DC+1
-    adiw r25:r24, 1 ; Increase the temporary counter by one.
-
-    cpi r24, low(2000)		; Check if (r25:r24) = 390 ; 7812 = 10^6/128/20 ; 50 milliseconds
-    ldi temp, high(2000)		;390 = 10^6/128/20 
-    cpc temp, r25
-    brne notHundred			; 100 milliseconds have not passed
-	clear DC
-	clr debounceFlag
-			;	once 100 milliseconds have passed, set the debounceFlag to 0	; Reset the debounce counter.
-    rjmp EndIF
-
-LED:
-	cpi counter, 5
-	breq isThree
-	inc counter
-	mov temp, counter
-	andi temp, ODDEVENMASK
-	cpi temp, 0
-	breq turnOnLED
-	clr temp
-	out PORTC, temp
-	rjmp Endif
-
 isThree:
 	clr waitingFlag
 	clr debounceFlag
@@ -371,15 +338,61 @@ isThree:
 	;out PORTC, counter
 	rjmp jmpChangeScreen
 
-notHundred: 		; Store the new value of the debounce counter.
-	sts DC, r24
-	sts DC+1, r25
+
+turnOnLED:
+	ser temp
+	out PORTC, temp
+	ldi waitingFlag, CHANGE_LED
+
+/*button:						; debounce for buttons 
+	lds r24, BC					; no needed but just in case
+	lds r25, BC+1 
+	adiw r25:r24, 1
+	cpi r24, low(500)
+	ldi temp, high(500)
+	cpc r25, temp
+	brne Nota500*/
+
+	ldi debounceFlag, 2			; enable bottuns
+	
+	;clear BC
+	;rjmp outStock
+
+/*Nota500:
+	sts BC, r24
+	sts BC+1, r25*/
+
+outStock:
+	lds r24, OC         ;load OC
+	lds r25, OC+1 
+	adiw r25:r24, 1
+	cpi r24, low(3906)
+	ldi temp, high(3906)
+	cpc r25, temp
+	brne NotaHalfSecond
+	clear OC
+	rjmp LED
+
+jmpChangeScreen:
+	jmp changeScreen
+
+LED:
+	cpi counter, 5
+	breq isThree
+	inc counter
+	mov temp, counter
+	andi temp, ODDEVENMASK
+	cpi temp, 0			;even
+	breq turnOnLED		
+	clr temp
+	out PORTC, temp
 	rjmp Endif
+
+
 
 NotaHalfSecond:
 	sts OC, r24
 	sts OC+1, r25
-	rjmp Endif
 
 Endif:
 	pop	r24
@@ -398,8 +411,7 @@ PB0_Interrupt:
 	push temp
 	in temp, SREG
 	push temp
-	clr r30
-	clr r31
+	clear OC
 	pop temp
 	out SREG, temp
 	pop temp
@@ -412,8 +424,7 @@ PB1_Interrupt:
 	push temp
 	in temp, SREG
 	push temp
-	clr r30
-	clr r31
+	clear OC
 	pop temp
 	out SREG, temp
 	pop temp
@@ -424,19 +435,6 @@ return:
 	reti
 
 
-
-
-
-returnClear:
-	clear OC
-	clear DC
-	clear TC
-	clr r30
-	clr r31
-	clr debounceFlag
-	clr waitingFlag
-	rcall sleep_5ms
-	reti
 
 changeScreen:
 	do_lcd_command 0b00000001 ; clear display
@@ -454,21 +452,31 @@ changeScreen:
 	do_lcd_data 'm'
 
 	do_lcd_command 0b11000000	; break to the next line
-	cpi debounceFlag, 1
-	breq keepDebounce
-	cpi debounceFlag, 2
-	breq returnClear
-	clr debounceFlag
-	clr waitingFlag
 	rcall sleep_5ms
+	cpi debounceFlag, 1			; 1.skiped starting screen
+	breq keepDebounce			; disable keypad input for more 50 ms 
+	cpi debounceFlag, 2			; 1.skiped outOfStock screen
+	breq returnClear			; disable button & back to normal
+	;clr debounceFlag
+	;clr waitingFlag
 	rjmp Endif
 
-keepDebounce:
+returnClear:
+	clear OC
+	clear DC
+	clear TC
+	clr counter
+	clr debounceFlag
 	clr waitingFlag
+	reti
+
+keepDebounce:					; disable keypad input for more 50 ms
+	clr waitingFlag				; Back to Normal
+	clr counter
 	clear OC
 	clear TC
 	clear DC
-	rjmp newDebounce
+	rjmp newDebounce			; debounceFlag will be reset in 50ms
 
 ;interruption stuff ends
 ;*****************************************************************************
@@ -482,10 +490,11 @@ main:
 	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
 	out EIMSK, temp
 
-	;set timer interrupt
 	clr counter
 	clr debounceFlag
-	ldi waitingFlag, 1
+	ldi waitingFlag, START_SCREEN	;initialize the waiting from starting screen
+	
+	;set timer interrupt
 	clr temp
 	out TCCR0A, temp
 	ldi temp, (1<<CS01)
@@ -525,14 +534,15 @@ initKeypad:
 	clr temp
 	clr temp1
 	clr temp2
-	cpi waitingFlag, 2
-	breq initKeypad
-	cpi waitingFlag, 3
-	breq initKeypad
-
 	; debounce check
 	cpi debounceFlag, 1		; if the button is still debouncing, ignore the keypad
 	breq initKeypad	
+	cpi waitingFlag, OUT_OF_STOCK
+	breq initKeypad
+	cpi waitingFlag, CHANGE_LED
+	breq initKeypad
+
+	
 
 	;ldi debounceFlag, 1		; otherwise set the flag now to init the debounce
 
@@ -626,16 +636,16 @@ star:
 zero:
     ;ldi temp1, 0          ; set to zero in binary
 	ldi debounceFlag, 1
-	jmp convert_end
+	jmp initKeypad			; no need for that
 
 goInitial:
 	jmp initKeypad
 
 convert_end:
-	do_lcd_rdata temp1
-	ldi debounceFlag, 1		; Key has been pressed value in TEMP1
-	cpi waitingFlag, 1		; if it's for starting screen just skip it
-	breq goInitial
+	;do_lcd_rdata temp1		; Key has been pressed value in TEMP1
+	ldi debounceFlag, 1		; disable keypad
+	cpi waitingFlag, START_SCREEN		; if it's for starting screen just skip it
+	breq goInitial			; keep disable keypad in starting screen
 	push temp1
 
 	;subi temp1,48
@@ -670,6 +680,7 @@ inStock:
 
 insertCoin:
 	pop temp1
+
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'I'
@@ -687,8 +698,9 @@ insertCoin:
 	do_lcd_rdata temp3
 
 	do_lcd_command 0b11000000	; break to the next line
-
 	do_lcd_rdata temp2
+
+	;clr debounceFlag			;renable keypad
 	jmp initKeypad
 
 outOfStock:
@@ -712,7 +724,8 @@ outOfStock:
 
 	do_lcd_rdata temp1
 	rcall sleep_5ms
-	ldi waitingFlag, 2
+	;clr debounceFlag		; keypad keep disable
+	ldi waitingFlag, OUT_OF_STOCK		; enter led subroutine in TFOVR
 	rjmp initKeypad
 	
 
