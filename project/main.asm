@@ -35,28 +35,23 @@
 	rcall lcd_command
 	rcall lcd_wait
 .endmacro
-
 .macro do_lcd_data
 	ldi lcd, @0
 	rcall lcd_data
 	rcall lcd_wait
 .endmacro
-
 .macro do_lcd_rdata
 	mov lcd, @0
 	subi lcd, -'0'
 	rcall lcd_data
 	rcall lcd_wait
 .endmacro
-
 .macro lcd_set
 	sbi PORTA, @0
 .endmacro
-
 .macro lcd_clr
 	cbi PORTA, @0
 .endmacro
-
 .macro clear
 	ldi YL, low(@0)		; load the memory address to Y
 	ldi YH, high(@0)
@@ -64,12 +59,9 @@
 	st Y+, temp			; clear the two bytes at @0 in SRAM
 	st Y, temp
 .endmacro
-
 .macro defitem
-	
 	.db @0, @1
 	.set T = PC
-	
 .endmacro
 
 .dseg
@@ -80,8 +72,6 @@ OC: .byte 2
 QUANTITY: .byte 9
 
 .cseg
-
-
 .org 0x0000
 	jmp RESET
 
@@ -104,75 +94,8 @@ defitem "6",  "2"  ;1
 .org OVF0addr
 	jmp Timer0OVF ; Jump to the interrupt handler for
 					; Timer0 overflow
-
-
-lcd_command:
-	out PORTF, lcd
-	rcall sleep_1ms
-	lcd_set LCD_E
-	rcall sleep_1ms
-	lcd_clr LCD_E
-	rcall sleep_1ms
-	ret
-
-lcd_data:
-	out PORTF, lcd
-	lcd_set LCD_RS
-	rcall sleep_1ms
-	lcd_set LCD_E
-	rcall sleep_1ms
-	lcd_clr LCD_E
-	rcall sleep_1ms
-	lcd_clr LCD_RS
-	ret
-
-
-lcd_wait:
-	push lcd
-	clr lcd
-	out DDRF, lcd
-	out PORTF, lcd
-	lcd_set LCD_RW
-
-lcd_wait_loop:
-	rcall sleep_1ms
-	lcd_set LCD_E
-	rcall sleep_1ms
-	in lcd, PINF
-	lcd_clr LCD_E
-	sbrc lcd, 7
-	rjmp lcd_wait_loop
-	lcd_clr LCD_RW
-	ser lcd
-	out DDRF, lcd
-	pop lcd
-	ret
-
-; For LCD delay
-.equ F_CPU = 16000000
-.equ DELAY_1MS = F_CPU / 4 / 1000 - 4
-; 4 cycles per iteration - setup/call-return overhead
-
-sleep_1ms:
-		push r24
-		push r25
-		ldi r25, high(DELAY_1MS)
-		ldi r24, low(DELAY_1MS)
-delayloop_1ms:
-		sbiw r25:r24, 1
-		brne delayloop_1ms
-		pop r25
-		pop r24
-		ret
-
-sleep_5ms:
-		rcall sleep_1ms
-		rcall sleep_1ms
-		rcall sleep_1ms
-		rcall sleep_1ms
-		rcall sleep_1ms
-		ret
-
+.org ADCCaddr
+	jmp POT_Interrupt
 
 RESET:
 	ldi YL, low(RAMEND)
@@ -197,6 +120,10 @@ RESET:
 	clr temp
 	out DDRB, temp	
 	out PORTB, temp			;Set pott D to input
+
+	;initialize potentiometer
+	sts DDRK, temp
+	sts PORTK, temp
 
 	;initialize LCD
 	ser temp
@@ -287,6 +214,9 @@ checkFlagSet:
 
 	rjmp Endif							; WF=0 && DF=0: noremal waiting but nothing pressed
 
+jmpEndif:
+	rjmp Endif
+
 jmpTurnOnLED:
 	jmp turnOnLED
 
@@ -296,6 +226,9 @@ jmpOutStock:
 checkHash:
 	cpi debounceFlag, 4
 	breq jmpChangeScreen
+	cpi debounceFlag, 3
+	breq jmpEndif
+	clr debounceFlag
 	rjmp Endif
 
 newDebounce:	
@@ -430,7 +363,6 @@ PB0_Interrupt:
 	pop temp
 	out SREG, temp
 	pop temp
-	out PORTC, r30
 	rjmp ChangeScreen
 
 PB1_Interrupt:
@@ -443,13 +375,55 @@ PB1_Interrupt:
 	pop temp
 	out SREG, temp
 	pop temp
-	out PORTC, r30
 	rjmp changeScreen
 
 return:
 	reti
 
+POT_Interrupt:
+	cpi waitingFlag, 4
+	brne return
+	push temp
+	in temp, SREG
+	push temp
+	push r25
+	push r24
+	lds r24, ADCL
+	lds r25, ADCH
+	;do_lcd_rdata r24		; for debug
+	;do_lcd_data ' '
+	;do_lcd_rdata r25
+	;do_lcd_data ' '
+	cpi r24, low(0)		; 
+    ldi temp, high(0)	; 
+    cpc temp, r25
+	breq setPOTMinFlag
+	cpi r24, low(0x3F)		; ADCL/H  is 10 bits reg
+    ldi temp, high(0x3F)	; MAX = 001111111111
+    cpc temp, r25
+	breq setPOTMaxFlag
 
+continue:
+	pop r24
+	pop r25
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
+setPOTMinFlag:
+	inc counter
+	cpi counter, 2
+	brlt continue
+	cpi temp1, 1
+	brlt continue
+	ldi debounceFlag, 3
+	rjmp continue
+setPOTMaxFlag:
+	inc temp1
+	rjmp continue
+
+	
 
 changeScreen:
 	do_lcd_command 0b00000001 ; clear display
@@ -498,7 +472,7 @@ keepDebounce:					; disable keypad input for more 50 ms
 ;*****************************************************************************
 
 main:
-
+	; Button PB0 & PB1 initialization
 	ldi temp, (1<<ISC01 | 1<<ISC11)	;set failing edge for INT0 and INT1
 	sts EICRA, temp
 
@@ -506,6 +480,15 @@ main:
 	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
 	out EIMSK, temp
 
+	; Potentiometer initialization
+	ldi temp, (3<<REFS0 | 0<<ADLAR | 0<<MUX0)	;
+	sts ADMUX, temp
+	ldi temp, (1<<MUX5)	;
+	sts ADCSRB, temp
+	ldi temp, (1<<ADEN | 1<<ADSC | 1<<ADIE | 5<<ADPS0)	; Prescaling
+	sts ADCSRA, temp
+
+	; general initialization
 	clr counter
 	clr debounceFlag
 	ldi waitingFlag, START_SCREEN	;initialize the waiting from starting screen
@@ -654,8 +637,8 @@ zero:
 	ldi debounceFlag, 1
 	jmp initKeypad			; no need for that
 
-goInitPOT:
-	rjmp initPOT
+goPOT:
+	rjmp POT
 
 convert_end:
 	;do_lcd_rdata temp1		; Key has been pressed value in TEMP1
@@ -663,7 +646,7 @@ convert_end:
 	cpi waitingFlag, START_SCREEN		; if it's for starting screen just skip it
 	breq goInitial			; keep disable keypad in starting screen
 	cpi waitingFlag, 4		; if it's for starting screen just skip it
-	breq goInitPOT			; keep disable keypad in starting screen
+	breq goPOT			; keep disable keypad in starting screen
 	push temp1
 	;subi temp1,48
 	;clr counter
@@ -725,7 +708,6 @@ inStock:
 	st -Y, temp
 
 insertCoin:
-	pop temp1
 
 	do_lcd_command 0b00000001 ; clear display
 
@@ -745,30 +727,108 @@ insertCoin:
 
 	do_lcd_command 0b11000000	; break to the next line
 	do_lcd_rdata temp2
-
+	push temp1
+	push temp2
 	;clr debounceFlag			;renable keypad
 	;rjmp initPOT
+	push counter
+	clr counter
+	clr temp1
 
 initPOT:								; WF=0 DF=1 
 	ldi waitingFlag, 4					; WF=4 DF=3 diable keyPad but "#" in normal mode
-										; waiting for twist
+										; waiting for twisted
+
 	clr debounceFlag							; for the num of coins inserted
 
 POT:
 	cpi debounceFlag, 3					; see if the twist has been twisted 
 	brne gogoInitial
-	push temp1
+	clr debounceFlag
+	pop counter
+	pop temp2
+	pop temp1
 	inc counter		
 	out PORTC, counter					
 	subi temp2, 1						; 
 	cpi temp2, 0						; if all coin has been inserted
-	brne insertCoin						; refresh the 
+	brne goInsert						; refresh the screen
+	clr waitingFlag
 	rjmp delivery
+
+goInsert:
+	rjmp insertCoin
 
 gogoInitial:
 	jmp initKeypad
 
 	
 delivery:
-	pop temp1
 	rjmp delivery
+
+lcd_command:
+	out PORTF, lcd
+	rcall sleep_1ms
+	lcd_set LCD_E
+	rcall sleep_1ms
+	lcd_clr LCD_E
+	rcall sleep_1ms
+	ret
+
+lcd_data:
+	out PORTF, lcd
+	lcd_set LCD_RS
+	rcall sleep_1ms
+	lcd_set LCD_E
+	rcall sleep_1ms
+	lcd_clr LCD_E
+	rcall sleep_1ms
+	lcd_clr LCD_RS
+	ret
+
+
+lcd_wait:
+	push lcd
+	clr lcd
+	out DDRF, lcd
+	out PORTF, lcd
+	lcd_set LCD_RW
+
+lcd_wait_loop:
+	rcall sleep_1ms
+	lcd_set LCD_E
+	rcall sleep_1ms
+	in lcd, PINF
+	lcd_clr LCD_E
+	sbrc lcd, 7
+	rjmp lcd_wait_loop
+	lcd_clr LCD_RW
+	ser lcd
+	out DDRF, lcd
+	pop lcd
+	ret
+
+; For LCD delay
+.equ F_CPU = 16000000
+.equ DELAY_1MS = F_CPU / 4 / 1000 - 4
+; 4 cycles per iteration - setup/call-return overhead
+
+sleep_1ms:
+		push r24
+		push r25
+		ldi r25, high(DELAY_1MS)
+		ldi r24, low(DELAY_1MS)
+delayloop_1ms:
+		sbiw r25:r24, 1
+		brne delayloop_1ms
+		pop r25
+		pop r24
+		ret
+
+sleep_5ms:
+		rcall sleep_1ms
+		rcall sleep_1ms
+		rcall sleep_1ms
+		rcall sleep_1ms
+		rcall sleep_1ms
+		ret
