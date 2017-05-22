@@ -91,6 +91,8 @@ QUANTITY: .byte 9
 .org INT1addr
    jmp PB1_Interrupt
 
+
+
 defitem "8",  "4"  ;9  coin  quantity
 defitem "6",  "3"  ;8
 defitem "2",  "1"  ;7
@@ -105,6 +107,8 @@ defitem "6",  "2"  ;1
 	jmp Timer0OVF ; Jump to the interrupt handler for
 					; Timer0 overflow
 
+;.org 0x003A
+;	jmp POT_Interrupt
 
 lcd_command:
 	out PORTF, lcd
@@ -173,6 +177,23 @@ sleep_5ms:
 		rcall sleep_1ms
 		ret
 
+/*
+doADC:	
+	ori	temp, (0 << ADLAR | 3 << REFS0 | 0 << MUX0)
+	sts	ADMUX, temp ; ADC result bits 9-2 in ADCH upon completion
+	ldi	temp, (1 << ADEN) | (1 << ADSC) | (1 << ADIE)  | (0 << ADPS0); sysclk 8MHz / 64
+	sts	ADCSRA, temp; enable ADC
+	ori	temp, (1 << MUX5)
+	sts	ADCSRB, temp
+
+ADCdly:
+	lds	temp, ADCSRA
+	sbrc temp, ADSC
+	rjmp ADCdly
+	in temp, ADCL
+	in temp1, ADCH
+	ret	*/
+
 
 RESET:
 	ldi YL, low(RAMEND)
@@ -196,7 +217,12 @@ RESET:
 	;initialize PB0 & PB1 button
 	clr temp
 	out DDRB, temp	
-	out PORTB, temp			;Set pott D to input
+	out PORTB, temp	
+
+	;initialize potentiometer
+	;clr temp
+	;out DDRK, temp
+	;out PORTK, temp
 
 	;initialize LCD
 	ser temp
@@ -433,8 +459,20 @@ PB1_Interrupt:
 
 return:
 	reti
-
-
+/*
+POT_Interrupt:
+	cpi debounceFlag, 3
+	brne return
+	push temp
+	in temp, SREG
+	push temp
+	clear OC
+	pop temp
+	out SREG, temp
+	pop temp
+	out PORTC, r30
+	rjmp changeScreen
+*/
 
 changeScreen:
 	do_lcd_command 0b00000001 ; clear display
@@ -471,24 +509,40 @@ returnClear:
 	reti
 
 keepDebounce:					; disable keypad input for more 50 ms
-	clr waitingFlag				; Back to Normal
-	clr counter
 	clear OC
 	clear TC
 	clear DC
+	clr counter
+	clr waitingFlag				; Back to Normal
+
 	rjmp newDebounce			; debounceFlag will be reset in 50ms
 
 ;interruption stuff ends
 ;*****************************************************************************
 
 main:
-
+	
+	; External interrupt 3 initialisation (2 buttons, 1 potentiometer)
+	; For buttons
 	ldi temp, (1<<ISC01 | 1<<ISC11)	;set failing edge for INT0 and INT1
 	sts EICRA, temp
 
 	in temp, EIMSK					
 	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
 	out EIMSK, temp
+	
+	; For potentiometer
+	ldi temp, (1 << ADEN | 1 << ADSC | 1 << ADIE | 5 << ADPS0)		;prescaling division factor = 32
+	sts ADCSRA, temp
+	ldi temp, (1 << MUX5)
+	sts ADCSRB, temp
+	ori temp, (3 << REFS0 | 0 << ADLAR | 0 << MUX0)
+	sts ADMUX, temp
+
+	in temp, EIMSK					
+	ori temp, (1<<INT2)	;Enable INT0/1
+	out EIMSK, temp
+	
 
 	clr counter
 	clr debounceFlag
@@ -535,8 +589,8 @@ initKeypad:
 	clr temp1
 	clr temp2
 	; debounce check
-	cpi debounceFlag, 1		; if the button is still debouncing, ignore the keypad
-	breq initKeypad	
+	cpi debounceFlag, 0		; if the button is still debouncing, ignore the keypad
+	brne initKeypad		
 	cpi waitingFlag, OUT_OF_STOCK
 	breq initKeypad
 	cpi waitingFlag, CHANGE_LED
@@ -667,6 +721,8 @@ inventory:
 	breq inStock
 	adiw Y, 2
 	rjmp inventory
+
+
 	
 inStock:
 	ld temp,Y+				;quantity
@@ -698,10 +754,9 @@ insertCoin:
 	do_lcd_rdata temp3
 
 	do_lcd_command 0b11000000	; break to the next line
-	do_lcd_rdata temp2
+	do_lcd_rdata temp2			; temp2 has the price of the good
 
-	;clr debounceFlag			;renable keypad
-	jmp initKeypad
+	jmp initPOT						; to twist POT
 
 outOfStock:
 	pop temp1
@@ -728,5 +783,23 @@ outOfStock:
 	ldi waitingFlag, OUT_OF_STOCK		; enter led subroutine in TFOVR
 	rjmp initKeypad
 	
+initPOT:
+	ldi debounceFlag, 3					; WF=0 DF=3 diable keyPad in normal mode
+										; waiting for twist
+	;clr counter							; for the num of coins inserted
+	push temp1
 
+POT:
+	cpi debounceFlag, 4					; see if the twist has been twisted
+	brne POT
+	;clr debounceFlag
+	inc counter		
+	out PORTC, counter					
+	subi temp2, 1						; 
+	cpi temp2, 0						; if all coin has been inserted
+	brne insertCoin						; refresh the 
+	rjmp delivery
+
+delivery:
+	
 

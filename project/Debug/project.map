@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Sun May 21 22:27:45 2017
+AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Mon May 22 12:39:54 2017
 
 
 EQU  SIGNATURE_000 0000001e
@@ -1420,21 +1420,24 @@ CSEG changeScreen 00000186
 CSEG return       00000185
 CSEG keepDebounce 000001c6
 CSEG returnClear  000001b3
-CSEG initQuantity 000001f0
-CSEG initKeypad   000001fa
-CSEG colloop      00000205
-CSEG delay        0000020a
-CSEG nextcol      0000021c
-CSEG rowloop      00000213
-CSEG convert      00000220
-CSEG letters      0000022b
-CSEG symbols      0000022e
-CSEG convert_end  0000023d
-CSEG star         00000235
-CSEG zero         00000238
-CSEG goInitial    0000023b
-CSEG findItem     00000241
-CSEG inventory    00000243
-CSEG inStock      00000248
-CSEG outOfStock   00000284
-CSEG insertCoin   0000024f
+CSEG initQuantity 000001fc
+CSEG initKeypad   00000206
+CSEG colloop      00000211
+CSEG delay        00000216
+CSEG nextcol      00000228
+CSEG rowloop      0000021f
+CSEG convert      0000022c
+CSEG letters      00000237
+CSEG symbols      0000023a
+CSEG convert_end  00000249
+CSEG star         00000241
+CSEG zero         00000244
+CSEG goInitial    00000247
+CSEG findItem     0000024d
+CSEG inventory    0000024f
+CSEG inStock      0000025e
+CSEG initPOT      00000254
+CSEG POT          00000256
+CSEG insertCoin   00000265
+CSEG delivery     000002cc
+CSEG outOfStock   0000029a
