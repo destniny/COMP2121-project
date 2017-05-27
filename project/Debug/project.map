@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Sat May 27 15:52:11 2017
+AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Sat May 27 16:11:35 2017
 
 
 EQU  SIGNATURE_000 0000001e
@@ -1390,11 +1390,11 @@ CSEG PB1_Interrupt 00000177
 CSEG Timer0OVF    000000de
 CSEG POT_Interrupt 00000186
 SET  T            00000045
-CSEG lcd_command  000002fa
-CSEG lcd_wait     0000030a
-CSEG sleep_5ms    00000324
-CSEG sleep_1ms    0000031b
-CSEG lcd_data     00000301
+CSEG lcd_command  00000332
+CSEG lcd_wait     00000342
+CSEG sleep_5ms    0000035c
+CSEG sleep_1ms    00000353
+CSEG lcd_data     00000339
 CSEG main         000001ff
 CSEG end          000000dd
 EQU  START_SCREEN 00000001
@@ -1433,7 +1433,7 @@ CSEG delay        00000233
 CSEG nextcol      00000247
 CSEG rowloop      0000023c
 CSEG convert      0000024b
-CSEG POT          000002e7
+CSEG POT          000002e8
 CSEG letters      00000256
 CSEG symbols      00000259
 CSEG convert_end  00000266
@@ -1444,12 +1444,12 @@ CSEG findItem     0000026b
 CSEG inventory    0000026d
 CSEG inStock      000002a5
 CSEG outOfStock   00000274
-CSEG insertCoin   000002ac
-CSEG initPOT      000002e5
-CSEG gogoInitial  000002f7
-CSEG goInsert     000002f6
-CSEG delivery     000002f9
-CSEG lcd_wait_loop 0000030f
+CSEG insertCoin   000002ad
+CSEG initPOT      000002e6
+CSEG gogoInitial  000002fb
+CSEG goInsert     000002fa
+CSEG delivery     000002fd
+CSEG lcd_wait_loop 00000347
 EQU  F_CPU        00f42400
 EQU  DELAY_1MS    00000f9c
-CSEG delayloop_1ms 0000031f
+CSEG delayloop_1ms 00000357

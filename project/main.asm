@@ -714,6 +714,7 @@ inStock:
 	breq outOfStock
 	subi temp, 1
 	st -Y, temp
+	clr counter
 
 insertCoin:
 
@@ -757,7 +758,10 @@ POT:
 	pop counter
 	pop temp3
 	pop temp2
-	pop temp1				
+	pop temp1	
+	lsl counter
+	inc counter
+	out PORTC, counter
 	subi temp2, 1						; 
 	cpi temp2, 0						; if all coin has been inserted
 	brne goInsert						; refresh the screen
@@ -772,6 +776,28 @@ gogoInitial:
 
 	
 delivery:
+	clr counter
+	do_lcd_command 0b00000001 ; clear display
+
+	do_lcd_data 'D'
+	do_lcd_data 'e'
+	do_lcd_data 'l'
+	do_lcd_data 'i'
+	do_lcd_data 'v'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'g'
+	do_lcd_data ' '
+	do_lcd_data 'i'
+	do_lcd_data 't'
+	do_lcd_data 'e'
+	do_lcd_data 'm'
+
+	do_lcd_command 0b11000000	; break to the next line
+
+
 	rjmp delivery
 
 lcd_command:
