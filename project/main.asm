@@ -81,6 +81,12 @@ QUANTITY: .byte 9
 .org INT1addr
    jmp PB1_Interrupt
 
+.org OVF0addr
+	jmp Timer0OVF ; Jump to the interrupt handler for
+					; Timer0 overflow
+.org ADCCaddr
+	jmp POT_Interrupt
+
 defitem "8",  "4"  ;9  coin  quantity
 defitem "6",  "3"  ;8
 defitem "2",  "1"  ;7
@@ -90,12 +96,6 @@ defitem "9",  "9"  ;4
 defitem "1",  "4"  ;3
 defitem "5",  "3"  ;2
 defitem "6",  "2"  ;1
-
-.org OVF0addr
-	jmp Timer0OVF ; Jump to the interrupt handler for
-					; Timer0 overflow
-.org ADCCaddr
-	jmp POT_Interrupt
 
 RESET:
 	ldi YL, low(RAMEND)
@@ -120,10 +120,6 @@ RESET:
 	clr temp
 	out DDRB, temp	
 	out PORTB, temp			;Set pott D to input
-
-	;initialize potentiometer
-	sts DDRK, temp
-	sts PORTK, temp
 
 	;initialize LCD
 	ser temp
@@ -207,7 +203,7 @@ checkFlagSet:
 	breq jmpTurnOnLED
 	cpi waitingFlag, CHANGE_LED			; out of stock screen: 2.turn the led off and on
 	breq jmpOutStock
-	cpi waitingFlag, 4			; out of stock screen: 2.turn the led off and on
+	cpi waitingFlag, 4					; Waiting for Potentiometer
 	breq checkHash
 	cpi debounceFlag, 1					; WF=0 && DF=1: normal waiting but keypad pressed
 	breq newDebounce
@@ -228,7 +224,24 @@ checkHash:
 	breq jmpChangeScreen
 	cpi debounceFlag, 3
 	breq jmpEndif
-	clr debounceFlag
+
+	adiw r31:r30, 1
+	cpi r30, low(195)
+	ldi temp, high(195)
+	cpc r31, temp
+	brne Not50ms
+	; Potentiometer initialization
+	ldi temp, (3<<REFS0 | 0<<ADLAR | 0<<MUX0)	;
+	sts ADMUX, temp
+	ldi temp, (1<<MUX5)	;
+	sts ADCSRB, temp
+	ldi temp, (1<<ADEN | 1<<ADSC | 1<<ADIE | 5<<ADPS0)	; Prescaling
+	sts ADCSRA, temp
+	clr r30
+	clr r31
+	rjmp Endif
+
+Not50ms:
 	rjmp Endif
 
 newDebounce:	
@@ -265,10 +278,15 @@ starting:
 
 	rjmp Endif
 
+jmpChangeScreen:
+	jmp changeScreen
+
 NotaSecond:
 	sts TC, r24
 	sts TC+1, r25
 	rjmp Endif
+
+
 
 waiting:
 	inc counter
@@ -276,6 +294,8 @@ waiting:
 	cpi counter, 3
 	breq isThree
 	rjmp Endif
+	
+
 
 isThree:
 	clr waitingFlag
@@ -284,8 +304,6 @@ isThree:
 	;out PORTC, counter
 	rjmp changeScreen
 
-jmpChangeScreen:
-	jmp changeScreen
 
 
 turnOnLED:
@@ -336,8 +354,6 @@ LED:
 	out PORTC, temp
 	rjmp Endif
 
-
-
 NotaHalfSecond:
 	sts OC, r24
 	sts OC+1, r25
@@ -350,8 +366,6 @@ Endif:
 	pop	temp
 	out SREG, temp
 	reti
-
-
 
 PB0_Interrupt:
 	cpi debounceFlag, 2				;if the buttons are still debouncing
@@ -381,8 +395,8 @@ return:
 	reti
 
 POT_Interrupt:
-	cpi waitingFlag, 4
-	brne return
+	cpi debounceFlag, 3
+	breq return
 	push temp
 	in temp, SREG
 	push temp
@@ -390,17 +404,14 @@ POT_Interrupt:
 	push r24
 	lds r24, ADCL
 	lds r25, ADCH
-	;do_lcd_rdata r24		; for debug
-	;do_lcd_data ' '
-	;do_lcd_rdata r25
-	;do_lcd_data ' '
-	cpi r24, low(0)		; 
-    ldi temp, high(0)	; 
-    cpc temp, r25
+	;out PORTC, r24		; for debug
+	cpi r24, 0
+	ldi temp, 0
+    cpc r25, temp
 	breq setPOTMinFlag
-	cpi r24, low(0x3F)		; ADCL/H  is 10 bits reg
-    ldi temp, high(0x3F)	; MAX = 001111111111
-    cpc temp, r25
+	cpi r24, 0xFF		; ADCL/H  is 10 bits reg
+	ldi temp, 3
+    cpc r25, temp
 	breq setPOTMaxFlag
 
 continue:
@@ -412,15 +423,23 @@ continue:
 	reti
 
 setPOTMinFlag:
+	cpi temp3, 0
+	brne continue
 	inc counter
+	ldi temp3, 1
+	;do_lcd_rdata debounceFlag
 	cpi counter, 2
-	brlt continue
-	cpi temp1, 1
-	brlt continue
+	brne continue
 	ldi debounceFlag, 3
+	;ldi temp, (0<<ADEN | 1<<ADSC | 0<<ADIE)	; Prescaling
+	;sts ADCSRA, temp
 	rjmp continue
+
 setPOTMaxFlag:
-	inc temp1
+	cpi temp3, 1
+	brne continue
+	clr temp3
+	;do_lcd_rdata debounceFlag
 	rjmp continue
 
 	
@@ -480,14 +499,6 @@ main:
 	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
 	out EIMSK, temp
 
-	; Potentiometer initialization
-	ldi temp, (3<<REFS0 | 0<<ADLAR | 0<<MUX0)	;
-	sts ADMUX, temp
-	ldi temp, (1<<MUX5)	;
-	sts ADCSRB, temp
-	ldi temp, (1<<ADEN | 1<<ADSC | 1<<ADIE | 5<<ADPS0)	; Prescaling
-	sts ADCSRA, temp
-
 	; general initialization
 	clr counter
 	clr debounceFlag
@@ -536,14 +547,12 @@ initKeypad:
 	; debounce check
 	cpi debounceFlag, 1		; if the button is still debouncing, ignore the keypad
 	breq initKeypad	
+	cpi debounceFlag, 3		; if the one coin has been inserted
+	breq goPOT	
 	cpi waitingFlag, OUT_OF_STOCK
 	breq initKeypad
 	cpi waitingFlag, CHANGE_LED
 	breq initKeypad
-
-	
-
-	;ldi debounceFlag, 1		; otherwise set the flag now to init the debounce
 
 colloop:
     cpi col, 4
@@ -575,6 +584,10 @@ rowloop:
     inc row                 ; else move to the next row
     lsl rmask
     jmp rowloop
+
+goPOT:
+	ldi debounceFlag, 3
+	rjmp POT
     
 nextcol:                    ; if row scan is over
      lsl cmask
@@ -637,17 +650,13 @@ zero:
 	ldi debounceFlag, 1
 	jmp initKeypad			; no need for that
 
-goPOT:
-	rjmp POT
-
 convert_end:
 	;do_lcd_rdata temp1		; Key has been pressed value in TEMP1
+	cpi waitingFlag, 4		; if it's for potentio
+	breq goInitial			; keep disable keypad in starting screen
 	ldi debounceFlag, 1		; disable keypad
 	cpi waitingFlag, START_SCREEN		; if it's for starting screen just skip it
 	breq goInitial			; keep disable keypad in starting screen
-	cpi waitingFlag, 4		; if it's for starting screen just skip it
-	breq goPOT			; keep disable keypad in starting screen
-	push temp1
 	;subi temp1,48
 	;clr counter
    ; rjmp initKeypad         	; restart the main loop
@@ -673,7 +682,6 @@ goInitial:
 	jmp initKeypad
 
 outOfStock:
-	pop temp1
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'O'
@@ -729,11 +737,11 @@ insertCoin:
 	do_lcd_rdata temp2
 	push temp1
 	push temp2
-	;clr debounceFlag			;renable keypad
-	;rjmp initPOT
+	push temp3
 	push counter
 	clr counter
-	clr temp1
+	clr temp2
+	clr temp3
 
 initPOT:								; WF=0 DF=1 
 	ldi waitingFlag, 4					; WF=4 DF=3 diable keyPad but "#" in normal mode
@@ -744,12 +752,12 @@ initPOT:								; WF=0 DF=1
 POT:
 	cpi debounceFlag, 3					; see if the twist has been twisted 
 	brne gogoInitial
+	do_lcd_command 0b00000001 ; clear display
 	clr debounceFlag
 	pop counter
+	pop temp3
 	pop temp2
-	pop temp1
-	inc counter		
-	out PORTC, counter					
+	pop temp1				
 	subi temp2, 1						; 
 	cpi temp2, 0						; if all coin has been inserted
 	brne goInsert						; refresh the screen
