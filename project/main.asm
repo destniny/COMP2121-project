@@ -197,6 +197,8 @@ Timer0OVF:
 
 checkFlagSet:
 	
+	cpi waitingFlag, 5
+	breq delivering
 	cpi waitingFlag, START_SCREEN		; WF=1 starting screen
 	breq starting 
 	cpi waitingFlag, OUT_OF_STOCK		; out of stock screen: 1.turn the led on
@@ -209,6 +211,12 @@ checkFlagSet:
 	breq newDebounce
 
 	rjmp Endif							; WF=0 && DF=0: noremal waiting but nothing pressed
+
+delivering:
+	ser temp
+	out PORTC, temp
+	ldi waitingFlag, CHANGE_LED
+	rjmp outStock
 
 jmpEndif:
 	rjmp Endif
@@ -226,8 +234,8 @@ checkHash:
 	breq jmpEndif
 
 	adiw r31:r30, 1
-	cpi r30, low(195)
-	ldi temp, high(195)
+	cpi r30, low(300)
+	ldi temp, high(300)
 	cpc r31, temp
 	brne Not50ms
 	; Potentiometer initialization
@@ -301,6 +309,9 @@ isThree:
 	clr waitingFlag
 	clr debounceFlag
 	clr counter
+	in temp, PORTE
+	ldi temp, (0 << PE4)
+	out PORTE, temp
 	;out PORTC, counter
 	rjmp changeScreen
 
@@ -320,7 +331,8 @@ turnOnLED:
 	cpc r25, temp
 	brne Nota500*/
 
-	ldi debounceFlag, 2			; enable bottuns
+
+	;ldi debounceFlag, 2			; enable bottuns
 	
 	;clear BC
 	;rjmp outStock
@@ -396,7 +408,7 @@ return:
 
 POT_Interrupt:
 	cpi debounceFlag, 3
-	breq return
+	breq continue
 	push temp
 	in temp, SREG
 	push temp
@@ -404,7 +416,7 @@ POT_Interrupt:
 	push r24
 	lds r24, ADCL
 	lds r25, ADCH
-	;out PORTC, r24		; for debug
+	;out PORTC, r25		; for debug
 	cpi r24, 0
 	ldi temp, 0
     cpc r25, temp
@@ -461,6 +473,8 @@ changeScreen:
 
 	do_lcd_command 0b11000000	; break to the next line
 	rcall sleep_5ms
+	clr temp
+	out PORTC, temp
 	cpi debounceFlag, 1			; 1.skiped starting screen
 	breq keepDebounce			; disable keypad input for more 50 ms 
 	cpi debounceFlag, 2			; 1.skiped outOfStock screen
@@ -546,6 +560,8 @@ initKeypad:
 	clr temp2
 	; debounce check
 	cpi debounceFlag, 1		; if the button is still debouncing, ignore the keypad
+	breq initKeypad	
+	cpi debounceFlag, 2		; if the button is still debouncing, ignore the keypad
 	breq initKeypad	
 	cpi debounceFlag, 3		; if the one coin has been inserted
 	breq goPOT	
@@ -657,12 +673,14 @@ convert_end:
 	ldi debounceFlag, 1		; disable keypad
 	cpi waitingFlag, START_SCREEN		; if it's for starting screen just skip it
 	breq goInitial			; keep disable keypad in starting screen
+	push temp1
 	;subi temp1,48
 	;clr counter
    ; rjmp initKeypad         	; restart the main loop
 
 
 findItem:
+	clr debounceFlag
 	ldi YH, high(QUANTITY)
 	ldi YL, low(QUANTITY)
 	;ldi temp, 6
@@ -682,6 +700,7 @@ goInitial:
 	jmp initKeypad
 
 outOfStock:
+	pop temp1
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'O'
@@ -701,7 +720,8 @@ outOfStock:
 
 	do_lcd_rdata temp1
 	rcall sleep_5ms
-	;clr debounceFlag		; keypad keep disable
+	clr counter
+	ldi debounceFlag, 2		; keypad keep disable
 	ldi waitingFlag, OUT_OF_STOCK		; enter led subroutine in TFOVR
 	rjmp initKeypad
 	
@@ -712,9 +732,6 @@ inStock:
 	
 	cpi temp, 0
 	breq outOfStock
-	subi temp, 1
-	st -Y, temp
-	clr counter
 
 insertCoin:
 
@@ -740,6 +757,8 @@ insertCoin:
 	push temp2
 	push temp3
 	push counter
+	push YL
+	push YH
 	clr counter
 	clr temp2
 	clr temp3
@@ -753,8 +772,11 @@ initPOT:								; WF=0 DF=1
 POT:
 	cpi debounceFlag, 3					; see if the twist has been twisted 
 	brne gogoInitial
-	do_lcd_command 0b00000001 ; clear display
+	ldi temp, (0<<ADEN | 1<<ADSC | 0<<ADIE)	; Prescaling
+	sts ADCSRA, temp
 	clr debounceFlag
+	pop YH
+	pop YL
 	pop counter
 	pop temp3
 	pop temp2
@@ -776,6 +798,8 @@ gogoInitial:
 
 	
 delivery:
+	subi temp3, 1
+	st -Y, temp3
 	clr counter
 	do_lcd_command 0b00000001 ; clear display
 
@@ -797,8 +821,13 @@ delivery:
 
 	do_lcd_command 0b11000000	; break to the next line
 
+	ldi temp,(1<<PE4)	; Actually we are inputting data in PE4 (Confirmed from Email)
+	out DDRE, temp
+	out PORTE, temp
+	ldi waitingFlag, 5
+	ldi debounceFlag, 1
 
-	rjmp delivery
+	rjmp gogoInitial
 
 lcd_command:
 	out PORTF, lcd
