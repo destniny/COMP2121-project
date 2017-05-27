@@ -31,12 +31,12 @@
   <PB1_Interrupt><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>394</LINE></PB1_Interrupt>
   <Timer0OVF><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>190</LINE></Timer0OVF>
   <POT_Interrupt><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>409</LINE></POT_Interrupt>
-  <lcd_command><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>832</LINE></lcd_command>
-  <lcd_wait><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>853</LINE></lcd_wait>
-  <sleep_5ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>891</LINE></sleep_5ms>
-  <sleep_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>879</LINE></sleep_1ms>
-  <lcd_data><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>841</LINE></lcd_data>
-  <main><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>507</LINE></main>
+  <lcd_command><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>856</LINE></lcd_command>
+  <lcd_wait><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>877</LINE></lcd_wait>
+  <sleep_5ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>915</LINE></sleep_5ms>
+  <sleep_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>903</LINE></sleep_1ms>
+  <lcd_data><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>865</LINE></lcd_data>
+  <main><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>509</LINE></main>
   <end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>180</LINE></end>
   <checkFlagSet><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>198</LINE></checkFlagSet>
   <delivering><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>215</LINE></delivering>
@@ -62,33 +62,34 @@
   <continue><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>429</LINE></continue>
   <setPOTMinFlag><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>437</LINE></setPOTMinFlag>
   <setPOTMaxFlag><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>450</LINE></setPOTMaxFlag>
-  <keepDebounce><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>496</LINE></keepDebounce>
-  <returnClear><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>487</LINE></returnClear>
-  <initQuantity><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>539</LINE></initQuantity>
-  <initKeypad><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>555</LINE></initKeypad>
-  <goPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>604</LINE></goPOT>
-  <colloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>573</LINE></colloop>
-  <delay><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>580</LINE></delay>
-  <nextcol><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>608</LINE></nextcol>
-  <rowloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>594</LINE></rowloop>
-  <convert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>613</LINE></convert>
-  <POT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>772</LINE></POT>
-  <letters><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>643</LINE></letters>
-  <symbols><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>650</LINE></symbols>
-  <convert_end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>669</LINE></convert_end>
-  <star><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>659</LINE></star>
-  <zero><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>664</LINE></zero>
-  <goInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>699</LINE></goInitial>
-  <findItem><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>682</LINE></findItem>
-  <inventory><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>692</LINE></inventory>
-  <inStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>728</LINE></inStock>
-  <outOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>702</LINE></outOfStock>
-  <insertCoin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>736</LINE></insertCoin>
-  <initPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>766</LINE></initPOT>
-  <gogoInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>796</LINE></gogoInitial>
-  <goInsert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>793</LINE></goInsert>
-  <delivery><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>800</LINE></delivery>
-  <lcd_wait_loop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>860</LINE></lcd_wait_loop>
-  <delayloop_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>884</LINE></delayloop_1ms>
+  <keepDebounce><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>498</LINE></keepDebounce>
+  <returnClear><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>489</LINE></returnClear>
+  <initQuantity><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>541</LINE></initQuantity>
+  <initKeypad><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>557</LINE></initKeypad>
+  <goPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>607</LINE></goPOT>
+  <colloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>576</LINE></colloop>
+  <delay><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>583</LINE></delay>
+  <nextcol><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>611</LINE></nextcol>
+  <rowloop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>597</LINE></rowloop>
+  <convert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>616</LINE></convert>
+  <POT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>793</LINE></POT>
+  <letters><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>646</LINE></letters>
+  <symbols><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>653</LINE></symbols>
+  <convert_end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>687</LINE></convert_end>
+  <star><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>677</LINE></star>
+  <zero><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>682</LINE></zero>
+  <abort><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>665</LINE></abort>
+  <goInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>717</LINE></goInitial>
+  <findItem><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>700</LINE></findItem>
+  <inventory><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>710</LINE></inventory>
+  <inStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>746</LINE></inStock>
+  <outOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>720</LINE></outOfStock>
+  <insertCoin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>755</LINE></insertCoin>
+  <initPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>787</LINE></initPOT>
+  <gogoInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>820</LINE></gogoInitial>
+  <goInsert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>817</LINE></goInsert>
+  <delivery><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>824</LINE></delivery>
+  <lcd_wait_loop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>884</LINE></lcd_wait_loop>
+  <delayloop_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>908</LINE></delayloop_1ms>
  </LABELS>
 </ASSEMBLER_INFO>

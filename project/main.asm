@@ -473,16 +473,18 @@ changeScreen:
 
 	do_lcd_command 0b11000000	; break to the next line
 	rcall sleep_5ms
-	clr temp
-	out PORTC, temp
+	;clr temp
+	;out PORTC, temp
 	cpi debounceFlag, 1			; 1.skiped starting screen
 	breq keepDebounce			; disable keypad input for more 50 ms 
 	cpi debounceFlag, 2			; 1.skiped outOfStock screen
 	breq returnClear			; disable button & back to normal
 
+	clr counter
 	clr debounceFlag			; # pressed
 	clr waitingFlag
 	rjmp Endif
+
 
 returnClear:
 	clear OC
@@ -565,6 +567,7 @@ initKeypad:
 	breq initKeypad	
 	cpi debounceFlag, 3		; if the one coin has been inserted
 	breq goPOT	
+
 	cpi waitingFlag, OUT_OF_STOCK
 	breq initKeypad
 	cpi waitingFlag, CHANGE_LED
@@ -654,8 +657,23 @@ symbols:
     breq zero
     ;ldi temp1, '#'         ; if not we have hash
 	;clr temp1				; TEMP: not handling the hash now
-	ldi debounceFlag, 4		; # is pressed
+	cpi waitingFlag, 4
+	breq abort
+	ldi debounceFlag, 1		; # is pressed
     jmp initKeypad
+
+abort:
+	ldi debounceFlag, 4
+	pop YH
+	pop YL
+	pop counter
+	pop temp3
+	pop temp2
+	pop temp1
+	out PORTC, temp1
+	clr counter
+	rjmp initKeypad
+
 star:
     ;ldi temp1, '*'          ; set to star
 	;clr temp1
@@ -732,6 +750,7 @@ inStock:
 	
 	cpi temp, 0
 	breq outOfStock
+	clr temp1
 
 insertCoin:
 
@@ -750,6 +769,7 @@ insertCoin:
 	do_lcd_data 'n'
 	do_lcd_data 's'
 	do_lcd_rdata temp3
+	do_lcd_rdata temp1
 
 	do_lcd_command 0b11000000	; break to the next line
 	do_lcd_rdata temp2
@@ -762,6 +782,7 @@ insertCoin:
 	clr counter
 	clr temp2
 	clr temp3
+	
 
 initPOT:								; WF=0 DF=1 
 	ldi waitingFlag, 4					; WF=4 DF=3 diable keyPad but "#" in normal mode
@@ -780,10 +801,13 @@ POT:
 	pop counter
 	pop temp3
 	pop temp2
-	pop temp1	
+	pop temp1
+	inc temp1	
+
 	lsl counter
 	inc counter
 	out PORTC, counter
+	
 	subi temp2, 1						; 
 	cpi temp2, 0						; if all coin has been inserted
 	brne goInsert						; refresh the screen
