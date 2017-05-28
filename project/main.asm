@@ -68,7 +68,8 @@
 DC: .byte 2               ; Two-byte counter for counting seconds.   
 TC:	.byte 2 
 OC: .byte 2
-;BC: .byte 2
+RC: .byte 1
+RCPATTERN: .byte 1
 QUANTITY: .byte 9
 
 .cseg
@@ -187,6 +188,80 @@ end:
 .equ OUT_OF_STOCK = 2
 .equ CHANGE_LED = 3
 
+clearReturning:
+	clr debounceFlag
+	clr temp
+	ldi temp,(0<<PE4)	; Actually we are inputting data in PE4 (Confirmed from Email)
+	out PORTE, temp
+	pop temp
+	rjmp Endif
+
+initReturn:
+	clr waitingFlag
+	;out PORTC, debounceFlag
+
+returnCoin:
+	push temp
+	lds temp, RC
+	cpi temp, 0
+	breq clearReturning
+	cpi debounceFlag, 6
+	breq returing
+	dec temp
+	sts RC, temp
+	
+	lds temp, RCPATTERN
+	lsr temp
+	sts RCPATTERN, temp
+	out PORTC, temp
+	ldi debounceFlag, 6
+	ldi temp,(1<<PE4)	; Actually we are inputting data in PE4 (Confirmed from Email)
+	out PORTE, temp
+	pop temp
+	rjmp newDebounce
+
+returing:
+	ldi debounceFlag, 4
+	ldi temp,(0<<PE4)	; Actually we are inputting data in PE4 (Confirmed from Email)
+	out PORTE, temp
+	pop temp
+	rjmp newDebounce
+
+clearHash:
+	clr waitingFlag
+
+newDebounce:	
+	;out PORTC, debounceFlag
+	lds r24, DC
+    lds r25, DC+1
+    adiw r25:r24, 1			; Increase the temporary counter by one.
+
+    cpi r24, low(2000)		; disable keypad for 50ms
+    ldi temp, high(2000)	; DF=1
+    cpc temp, r25
+    brne notHundred			; 100 milliseconds have not passed
+	clear DC
+	cpi waitingFlag, 7
+	breq initReturn
+	cpi debounceFlag, 4
+	breq returnCoin
+	cpi debounceFlag, 6
+	breq returnCoin
+	clr debounceFlag		; renable keypad
+    rjmp EndIF
+
+notHundred: 		; Store the new value of the debounce counter.
+	sts DC, r24
+	sts DC+1, r25
+	cpi waitingFlag, 7
+	breq jmpEndif
+	cpi debounceFlag, 4
+	breq checkFlagSet
+	cpi debounceFlag, 4
+	breq checkFlagSet
+	rjmp Endif
+
+
 Timer0OVF:
 	in temp, SREG
 	push temp			; Prologue starts.
@@ -194,6 +269,16 @@ Timer0OVF:
 	push YL
 	push r25
 	push r24
+
+checkReturn:
+	cpi waitingFlag, 7
+	breq newDebounce
+	cpi waitingFlag, 6
+	breq jmpChangeScreen
+	cpi debounceFlag, 4					
+	breq newDebounce
+	cpi debounceFlag, 6					
+	breq newDebounce
 
 checkFlagSet:
 	
@@ -209,6 +294,7 @@ checkFlagSet:
 	breq checkHash
 	cpi debounceFlag, 1					; WF=0 && DF=1: normal waiting but keypad pressed
 	breq newDebounce
+
 
 	rjmp Endif							; WF=0 && DF=0: noremal waiting but nothing pressed
 
@@ -228,8 +314,6 @@ jmpOutStock:
 	jmp outStock
 
 checkHash:
-	cpi debounceFlag, 4
-	breq jmpChangeScreen
 	cpi debounceFlag, 3
 	breq jmpEndif
 
@@ -252,23 +336,8 @@ checkHash:
 Not50ms:
 	rjmp Endif
 
-newDebounce:	
-	lds r24, DC
-    lds r25, DC+1
-    adiw r25:r24, 1			; Increase the temporary counter by one.
-
-    cpi r24, low(2000)		; disable keypad for 50ms
-    ldi temp, high(2000)	; DF=1
-    cpc temp, r25
-    brne notHundred			; 100 milliseconds have not passed
-	clear DC
-	clr debounceFlag		; renable keypad
-    rjmp EndIF
-
-notHundred: 		; Store the new value of the debounce counter.
-	sts DC, r24
-	sts DC+1, r25
-	rjmp Endif
+jmpChangeScreen:
+	jmp changeScreen
 	
 starting:
 	cpi debounceFlag, 1		; WF=1 && DF=1: starting screen can be interrupt by 
@@ -286,8 +355,7 @@ starting:
 
 	rjmp Endif
 
-jmpChangeScreen:
-	jmp changeScreen
+
 
 NotaSecond:
 	sts TC, r24
@@ -386,6 +454,8 @@ PB0_Interrupt:
 	in temp, SREG
 	push temp
 	clear OC
+	clr temp
+	out PORTC, temp
 	pop temp
 	out SREG, temp
 	pop temp
@@ -398,6 +468,8 @@ PB1_Interrupt:
 	in temp, SREG
 	push temp
 	clear OC
+	clr temp
+	out PORTC, temp
 	pop temp
 	out SREG, temp
 	pop temp
@@ -475,15 +547,25 @@ changeScreen:
 	rcall sleep_5ms
 	;clr temp
 	;out PORTC, temp
+	;push temp					; Display current Remaining coin
+	;lds temp, RC
+	;out PORTC, temp
+	;pop temp
+
 	cpi debounceFlag, 1			; 1.skiped starting screen
 	breq keepDebounce			; disable keypad input for more 50 ms 
 	cpi debounceFlag, 2			; 1.skiped outOfStock screen
 	breq returnClear			; disable button & back to normal
 
 	clr counter
-	clr debounceFlag			; # pressed
-	clr waitingFlag
+	;clr debounceFlag			; # pressed
+	ldi waitingFlag, 7
 	rjmp Endif
+
+
+jmpInitReturn:
+	rjmp initReturn
+
 
 
 returnClear:
@@ -571,6 +653,10 @@ initKeypad:
 	cpi waitingFlag, OUT_OF_STOCK
 	breq initKeypad
 	cpi waitingFlag, CHANGE_LED
+	breq initKeypad
+	cpi waitingFlag, 6
+	breq initKeypad
+	cpi waitingFlag, 7
 	breq initKeypad
 
 colloop:
@@ -670,8 +756,11 @@ abort:
 	pop temp3
 	pop temp2
 	pop temp1
-	out PORTC, temp1
+	;out PORTC, temp1
+	sts RC, temp1
+	sts RCPATTERN, counter
 	clr counter
+	ldi waitingFlag, 6
 	rjmp initKeypad
 
 star:
