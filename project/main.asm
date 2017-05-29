@@ -70,6 +70,7 @@ TC:	.byte 2
 OC: .byte 2
 RC: .byte 1
 RCPATTERN: .byte 1
+PR: .byte 1
 QUANTITY: .byte 9
 
 .cseg
@@ -261,10 +262,24 @@ notHundred: 		; Store the new value of the debounce counter.
 	breq checkFlagSet
 	rjmp Endif
 
+
+checkHashAdmin:
+	cpi debounceFlag, 7
+	breq jmpChangeScreen
+	cpi debounceFlag, 8
+	breq jmpEndif
+	cpi debounceFlag, 9
+	breq newDebounce
+	cpi debounceFlag, 10
+	breq newDebounce
+	cpi debounceFlag, 1
+	breq newDebounce
+	rjmp Endif
+
 jmpNewDebounce:
 	rjmp newDebounce
 
-
+	 
 Timer0OVF:
 	in temp, SREG
 	push temp			; Prologue starts.
@@ -285,10 +300,8 @@ checkReturn:
 	breq newDebounce
 
 checkFlagSet:
-	cpi debounceFlag, 7
-	breq jmpChangeScreen
 	cpi waitingFlag, 9
-	breq newDebounce
+	breq checkHashAdmin
 	cpi waitingFlag, 8
 	breq newDebounce
 	cpi waitingFlag, 5
@@ -305,6 +318,7 @@ checkFlagSet:
 	breq jmpnewDebounce
 	cpi debounceFlag, 5					; DF=5 && WF=0: * pressed ready to be in admin
 	breq starting
+	clr counter
 	clear TC							; Nothing pressed cancel admin
 
 	rjmp Endif							; WF=0 && DF=0: noremal waiting but nothing pressed
@@ -323,6 +337,9 @@ jmpTurnOnLED:
 
 jmpOutStock:
 	jmp outStock
+
+jmpChangeScreen:
+	jmp changeScreen
 
 checkHash:
 	cpi debounceFlag, 3
@@ -344,11 +361,12 @@ checkHash:
 	clr r31
 	rjmp Endif
 
+
+
 Not50ms:
 	rjmp Endif
 
-jmpChangeScreen:
-	jmp changeScreen
+
 	
 starting:
 	cpi debounceFlag, 1		; WF=1 && DF=1: starting screen can be interrupt by 
@@ -374,8 +392,10 @@ NotaSecond:
 	rjmp Endif
 
 enterAdmin:
+	clr debounceFlag
 	inc counter
-	cpi counter, 5
+	;out PORTC, counter
+	cpi counter, 2			;only for debug ********************************need to change back to 5
 	breq isFive
 	rjmp Endif
 
@@ -463,7 +483,58 @@ Endif:
 	out SREG, temp
 	reti
 
+increaseInv:
+	cpi debounceFlag, 9				;if the buttons are still debouncing
+	breq return	
+	cpi debounceFlag, 8				;if the buttons are still debouncing
+	breq return
+
+	cpi temp3, 10
+	breq return	
+	push temp
+	in temp, SREG
+	push temp
+	push YL
+	push YH
+	inc temp3
+	sbiw Y, 1
+	st Y, temp3
+	ldi debounceFlag, 8
+	;out PORTC, temp
+	pop YH
+	pop YL
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
+decreaseInv:
+	cpi debounceFlag, 9				;if the buttons are still debouncing
+	breq return	
+	cpi debounceFlag, 8				;if the buttons are still debouncing
+	breq return	
+	cpi temp3, 0
+	breq return
+	push temp
+	in temp, SREG
+	push temp
+	push YL
+	push YH
+	dec temp3
+	sbiw Y, 1
+	st Y, temp3
+	ldi debounceFlag, 8
+	;out PORTC, temp
+	pop YH
+	pop YL
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
 PB0_Interrupt:
+	cpi waitingFlag, 9
+	breq increaseInv
 	cpi debounceFlag, 2				;if the buttons are still debouncing
 	brne return						;Do nothing
 	push temp
@@ -477,7 +548,11 @@ PB0_Interrupt:
 	pop temp
 	rjmp ChangeScreen
 
+return:
+	reti
 PB1_Interrupt:
+	cpi waitingFlag, 9
+	breq decreaseInv
 	cpi debounceFlag, 2
 	brne return
 	push temp
@@ -491,8 +566,7 @@ PB1_Interrupt:
 	pop temp
 	rjmp changeScreen
 
-return:
-	reti
+
 
 POT_Interrupt:
 	cpi debounceFlag, 3
@@ -572,8 +646,8 @@ changeScreen:
 	breq keepDebounce			; disable keypad input for more 50 ms 
 	cpi debounceFlag, 2			; 1.skiped outOfStock screen
 	breq returnClear			; disable button & back to normal
-	cpi debounceFlag, 7
-	breq returnClear
+	cpi debounceFlag, 7			; exit Admin mode
+	breq exitAdmin
 
 	clr counter
 	;clr debounceFlag			; # pressed
@@ -584,9 +658,16 @@ changeScreen:
 jmpInitReturn:
 	rjmp initReturn
 
+exitAdmin:
+	clear OC
+	clear DC
+	clear TC
+	clr counter
+	clr debounceFlag
+	clr waitingFlag
+	rjmp Endif
 
-
-returnClear:
+returnClear:					; return button interrupt
 	clear OC
 	clear DC
 	clear TC
@@ -609,11 +690,17 @@ keepDebounce:					; disable keypad input for more 50 ms
 goInitAdmin:
 	rjmp initAdmin
 
+goShowInvAdmin:
+	clr debounceFlag
+	rjmp adminMode
+
+ABC:
+	clr debounceFlag
+	rjmp adminMode
 main:
 	; Button PB0 & PB1 initialization
 	ldi temp, (1<<ISC01 | 1<<ISC11)	;set failing edge for INT0 and INT1
 	sts EICRA, temp
-
 	in temp, EIMSK					
 	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
 	out EIMSK, temp
@@ -658,7 +745,7 @@ initQuantity:
 ;initKeypadClear:
 	;clr digit
 initKeypad:
-	out PORTC, waitingFlag
+	out PORTC, debounceFlag
     ldi cmask, INITCOLMASK  ; initial column mask
     clr col                 ; initial column
 	clr temp
@@ -675,6 +762,12 @@ initKeypad:
 	breq initKeypad	
 	cpi debounceFlag, 3		; if the one coin has been inserted
 	breq goPOT	
+	cpi debounceFlag, 8		; if the one coin has been inserted
+	breq goShowInvAdmin	
+	cpi debounceFlag, 9		; if the one coin has been inserted
+	breq initKeypad	
+	cpi debounceFlag, 10		; if the one coin has been inserted
+	breq initKeypad	
 
 	cpi waitingFlag, OUT_OF_STOCK
 	breq initKeypad
@@ -683,6 +776,8 @@ initKeypad:
 	cpi waitingFlag, 6
 	breq initKeypad
 	cpi waitingFlag, 7
+	breq initKeypad
+	cpi debounceFlag, 7		; if the one coin has been inserted
 	breq initKeypad
 
 colloop:
@@ -756,10 +851,54 @@ convert:
     jmp convert_end
     
 letters:
+	cpi waitingFlag, 9
+	breq letterAdmin
     ;ldi temp1, 'A'
     ;add temp1, row          ; Get the ASCII value for the key
 	;clr temp1
 	ldi debounceFlag, 1
+    jmp initKeypad
+
+letterAdmin:
+	cpi row, 0
+	breq A
+	cpi row, 1
+	breq B
+	cpi row, 2
+	breq C
+
+nothing:
+	ldi debounceFlag, 1
+    jmp initKeypad
+
+A:
+	lds temp2, PR
+	cpi temp2, 3
+	breq nothing
+	inc temp2
+	st Y, temp2
+	ldi debounceFlag, 8
+    jmp initKeypad
+
+B:
+	lds temp2, PR
+	cpi temp2, 0
+	breq nothing
+	dec temp2
+	st Y, temp2
+	ldi debounceFlag, 8
+    jmp initKeypad
+C:
+	push temp
+	push YL
+	push YH
+	sbiw Y, 1
+	clr temp
+	st Y, temp
+	pop YH
+	pop YL
+	pop temp
+	ldi debounceFlag, 8
     jmp initKeypad
 
 symbols:
@@ -792,8 +931,7 @@ abort:
 	rjmp initKeypad
 
 abortAdmin:
-	clr waitingFlag
-	ldi debounceFlag, 7
+	ldi debounceFlag, 7			; #is pressed when it's in admin mode WF=9
 	rjmp initKeypad
 
 star:
@@ -805,7 +943,7 @@ star:
     jmp initKeypad
 
 goingAdmin:
-	ldi debounceFlag, 5
+	ldi debounceFlag, 5				; * has been pressed
 	jmp initKeypad
 
 zero:
@@ -820,11 +958,19 @@ convert_end:
 	ldi debounceFlag, 1		; disable keypad
 	cpi waitingFlag, START_SCREEN		; if it's for starting screen just skip it
 	breq goInitial			; keep disable keypad in starting screen
+	cpi waitingFlag, 9
+	breq debug
 	push temp1
+	
 	;subi temp1,48
 	;clr counter
    ; rjmp initKeypad         	; restart the main loop
 	rjmp findItem
+
+debug:
+	pop temp					; for temp1
+	push temp1
+	rjmp adminMode
 
 goInitial:
 	jmp initKeypad
@@ -832,7 +978,9 @@ goInitial:
 initAdmin:
 	ldi temp1, 1
 	ldi waitingFlag, 9
+	push temp1
 adminMode:
+	pop temp1
 	do_lcd_command 0b00000001 ; clear display
 
 	do_lcd_data 'A'
@@ -847,11 +995,21 @@ adminMode:
 	do_lcd_data 'e'
 	do_lcd_data ' '
 	do_lcd_rdata temp1
-
-	do_lcd_command 0b11000000	; break to the next line
+	
+	push temp1
 	rjmp findItem
 
+showPattern:
+	lsl temp
+	inc temp
+	dec temp3
+	cpi temp3, 0
+	brne showPattern
+	out PORTC, temp
+	pop temp3
+
 showInventoryAdmin:
+	do_lcd_command 0b11000000	; break to the next line
 	do_lcd_rdata temp3
 	do_lcd_data ' '
 	do_lcd_data ' '
@@ -862,12 +1020,14 @@ showInventoryAdmin:
 	do_lcd_data ' '
 	do_lcd_data ' '
 	do_lcd_data '$'
+	lds temp2, PR
 	do_lcd_rdata temp2
-	out PORTC, debounceFlag
+	ldi debounceFlag, 9
+	;out PORTC, debounceFlag
 	rjmp initKeypad
 
 findItem:
-	clr debounceFlag
+	;clr debounceFlag
 	ldi YH, high(QUANTITY)
 	ldi YL, low(QUANTITY)
 	;ldi temp, 6
@@ -881,6 +1041,15 @@ inventory:
 	breq inStock
 	adiw Y, 2
 	rjmp inventory
+
+
+showInvLED:
+	clr temp
+	out PORTC, temp
+	cpi temp3, 0
+	breq showInventoryAdmin
+	push temp3
+	rjmp showPattern
 
 
 outOfStock:
@@ -904,20 +1073,22 @@ outOfStock:
 
 	do_lcd_rdata temp1
 	rcall sleep_5ms
+
 	clr counter
 	ldi debounceFlag, 2		; keypad keep disable
 	ldi waitingFlag, OUT_OF_STOCK		; enter led subroutine in TFOVR
 	rjmp initKeypad
 
-goShowInventoryAdmin:
-	rjmp showInventoryAdmin
+goShowLED:
+	rjmp showInvLED
 	
 inStock:
 	ld temp,Y+				;quantity
 	mov temp3, temp
 	ld temp2, Y				;price
+	sts PR, temp2
 	cpi waitingFlag, 9
-	breq goShowInventoryAdmin
+	breq goShowLED
 	
 	cpi temp, 0
 	breq outOfStock
