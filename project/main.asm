@@ -64,24 +64,25 @@
 .endmacro
 
 .dseg
-OC: .byte 2               ; Two-byte counter for counting seconds.   
-HC:	.byte 2 
-DC: .byte 2
-RC: .byte 1
+OC: .byte 2						; One Second Counter   
+HC:	.byte 2						; Half Second Counter
+DC: .byte 2						; Debounce Counter
+RC: .byte 1						; Return Coin
+NP: .byte 1						; Number Pressed
 RCPATTERN: .byte 1
-PR: .byte 1
+PR: .byte 1						; Price
 QUANTITY: .byte 9
 
 .cseg
 .org 0x0000
 	jmp RESET
-/*
+
 .org INT0addr
    jmp PB0_Interrupt
 
 .org INT1addr
    jmp PB1_Interrupt
-*/
+
 .org OVF0addr
 	jmp Timer0OVF ; Jump to the interrupt handler for
 					; Timer0 overflow
@@ -91,13 +92,13 @@ QUANTITY: .byte 9
 */
 defitem "1",  "4"  ;9  coin  quantity
 defitem "2",  "3"  ;8
-defitem "1",  "1"  ;7
+defitem "1",  "0"  ;7
 defitem "2",  "8"  ;6
 defitem	"1",  "2"  ;5
 defitem "2",  "9"  ;4
 defitem "1",  "4"  ;3
 defitem "2",  "3"  ;2
-defitem "1",  "2"  ;1
+defitem "1",  "0"  ;1
 
 
 RESET:
@@ -184,6 +185,7 @@ end:
 ;interruption stuff starts
 
 Timer0OVF:
+	push temp
 	in temp, SREG
 	push temp			; Prologue starts.
 	push YH				; Save all conflict registers in the prologue.
@@ -194,8 +196,11 @@ Timer0OVF:
 checkFlagSet:
 	cpi waitingFlag, 1		; WF=1 starting screen
 	breq oneSecond
+	cpi waitingFlag, 2		; out of stock screen: 1.turn the led on
+	breq buttonDebounce
 	cpi debounceFlag, 1					; WF=0 && DF=1: normal waiting but keypad pressed
 	breq keyDebounce
+	clear DC
 
 	rjmp Endif
 
@@ -221,6 +226,7 @@ countThree:
 	rjmp Endif
 
 isThree:
+	ldi debounceFlag, 1				;incase button not pressed
 	rjmp changeScreen
 
 NotaSecond:
@@ -247,6 +253,43 @@ notHundred: 		; Store the new value of the debounce counter.
 	sts DC+1, r25
 	rjmp Endif
 
+turnOnLED:
+	ser temp
+	out PORTC, temp
+
+buttonDebounce:
+	adiw r31:r30,1			; Everytime i increment DebounceCounter
+	cpi r30,low(500)		; Check if the debounceCounter reaches ~80ms, we enables the flag
+	ldi temp,high(500)
+	cpc r31,temp
+	brne halfSecond
+	ldi DebounceFlag, 2		;enable button to interrpt the program
+halfSecond:
+	lds r24, HC
+	lds r25, HC+1 
+	adiw r25:r24, 1
+	cpi r24, low(3906)
+	ldi temp, high(3906)
+	cpc r25, temp
+	brne NotaHalfSecond
+	clear HC
+
+flashLED:
+	cpi counter, 5
+	breq isThree
+	inc counter
+	mov temp, counter
+	andi temp, ODDEVENMASK
+	cpi temp, 0			; odd
+	breq turnOnLED		
+	clr temp			; even
+	out PORTC, temp
+	rjmp Endif
+
+NotaHalfSecond:
+	sts HC, r24
+	sts HC+1, r25
+
 Endif:
 	pop	r24
 	pop	r25
@@ -254,7 +297,41 @@ Endif:
 	pop	YH
 	pop	temp
 	out SREG, temp
+	pop temp
 	reti
+
+return:
+	reti
+
+PB0_Interrupt:
+	cpi debounceFlag, 2				;if the buttons are still debouncing
+	brne return						;Do nothing
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr temp
+	out PORTC, temp
+	pop temp
+	out SREG, temp
+	pop temp
+	rjmp changeScreen
+
+PB1_Interrupt:
+	cpi debounceFlag, 2
+	brne return
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr temp
+	out PORTC, temp
+	pop temp
+	out SREG, temp
+	pop temp
+	rjmp changeScreen
 
 changeScreen:
 	do_lcd_command 0b00000001 ; clear display
@@ -274,13 +351,21 @@ changeScreen:
 
 	; Any time counting should be cleared
 	clear OC
+	clear HC
+	clear DC
 	clr counter
 
 	clr waitingFlag				; Back to normal mode
 	cpi debounceFlag, 1			; Any key pressed
 	breq keepDebounce			; disable keypad input for more 50 ms 
+	cpi debounceFlag, 2			; button interrupted
+	breq returnClear			; clear debounceFlag
 
 	rjmp Endif
+
+returnClear:					; return button interrupt
+	clr debounceFlag
+	reti
 
 keepDebounce:					; disable keypad input for more 50 ms
 	rjmp keyDebounce			; debounceFlag will be reset in 50ms
@@ -293,9 +378,9 @@ main:
 	; Button PB0 & PB1 initialization
 	ldi temp, (1<<ISC01 | 1<<ISC11)	;set failing edge for INT0 and INT1
 	sts EICRA, temp
-	;in temp, EIMSK					
-	;ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
-	;out EIMSK, temp
+	in temp, EIMSK					
+	ori temp, (1<<INT0 | 1<<INT1)	;Enable INT0/1
+	out EIMSK, temp
 
 	; general initialization
 	clr counter
@@ -337,6 +422,9 @@ initKeypadClear:
 	clr digit
 initKeypad:
 	;out PORTC, digit
+	; waitingFlag check
+	cpi waitingFlag, 2		; WF=2 DF=1 out of stock screen
+	breq initKeypad
 	; debounce check
 	cpi debounceFlag, 1		; WF=0 DF=1 key pressed
 	breq initKeypad
@@ -428,7 +516,83 @@ zero:
 convert_end:
 	ldi digit, 1
 	ldi debounceFlag, 1					; disable keypad
+	cpi waitingFlag, 0
+	breq findItem 
     rjmp initKeypad         			; restart the main loop
+
+
+
+
+findItem:
+	sts NP, temp1						; Store the number been pressed
+	ldi YH, high(QUANTITY)
+	ldi YL, low(QUANTITY)
+
+inventory:
+	dec temp1
+	cpi temp1, 0
+	breq inStock
+	adiw Y, 2
+	rjmp inventory
+
+outOfStock:
+	lds temp, NP
+	do_lcd_command 0b00000001 ; clear display
+	do_lcd_data 'O'
+	do_lcd_data 'u'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'o'
+	do_lcd_data 'f'
+	do_lcd_data ' '
+	do_lcd_data 's'
+	do_lcd_data 't'
+	do_lcd_data 'o'
+	do_lcd_data 'c'
+	do_lcd_data 'k'
+	do_lcd_command 0b11000000	; break to the next line
+	do_lcd_rdata temp
+	rcall sleep_5ms
+
+	ser temp					; let LED to be on as default
+	out PORTC, temp
+
+	clr r30					; clr button debounce counter
+	clr r31
+	clr counter
+
+	ldi waitingFlag, 2		; enter led subroutine in TFOVR, DF=1
+	rjmp initKeypad
+
+inStock:
+	ld temp, Y+				;quantity
+	;mov temp1, temp
+	ld temp2, Y				;price
+
+	cpi temp, 0
+	breq outOfStock
+
+insertCoin:
+	do_lcd_command 0b00000001 ; clear display
+	do_lcd_data 'I'
+	do_lcd_data 'n'
+	do_lcd_data 's'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'c'
+	do_lcd_data 'o'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 's'
+	do_lcd_rdata temp			; count left
+	;do_lcd_rdata temp			; coin Inserted
+	do_lcd_command 0b11000000	; break to the next line
+	do_lcd_rdata temp2			; coin left
+
+	rjmp initKeypad
+
 
 
 ; main program ends here
