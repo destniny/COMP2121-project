@@ -71,7 +71,7 @@ RC: .byte 1						; Return Coin
 NP: .byte 1						; Number Pressed
 RCPATTERN: .byte 1
 PR: .byte 1						; Price
-QUANTITY: .byte 9
+QUANTITY: .byte 18
 
 .cseg
 .org 0x0000
@@ -409,7 +409,6 @@ initQuantity:
 	sbiw Z, 1
 	inc counter
 	st Y+,temp
-	;subi temp, 48  ;price
 	cpi counter, 18
 	brne initQuantity
 	clr r30

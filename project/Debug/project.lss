@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Mon May 29 23:04:30 2017
+AVRASM ver. 2.2.6  C:\Users\Edward\Desktop\project\project\main.asm Mon May 29 23:20:15 2017
 
 [builtin](2): Including file 'D:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc\m2560def.inc'
 C:\Users\Edward\Desktop\project\project\main.asm(8): Including file 'D:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.2.132\avrasm\inc\m2560def.inc'
@@ -1961,7 +1961,7 @@ C:\Users\Edward\Desktop\project\project\main.asm(8): Including file 'D:/Program 
 000207                           NP: .byte 1						; Number Pressed
 000208                           RCPATTERN: .byte 1
 000209                           PR: .byte 1						; Price
-00020a                           QUANTITY: .byte 9
+00020a                           QUANTITY: .byte 18
                                  
                                  .cseg
                                  .org 0x0000
@@ -2437,7 +2437,6 @@ C:\Users\Edward\Desktop\project\project\main.asm(8): Including file 'D:/Program 
 0001b2 9731                      	sbiw Z, 1
 0001b3 9543                      	inc counter
 0001b4 9309                      	st Y+,temp
-                                 	;subi temp, 48  ;price
 0001b5 3142                      	cpi counter, 18
 0001b6 f7c9                      	brne initQuantity
 0001b7 27ee                      	clr r30
@@ -2817,7 +2816,7 @@ Instructions used: 36 out of 116 (31.0%)
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
 [.cseg] 0x000000 0x00055c   1274     18   1292  262144   0.5%
-[.dseg] 0x000200 0x000213      0     19     19    8192   0.2%
+[.dseg] 0x000200 0x00021c      0     28     28    8192   0.3%
 [.eseg] 0x000000 0x000000      0      0      0    4096   0.0%
 
 Assembly complete, 0 errors, 2 warnings
