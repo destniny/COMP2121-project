@@ -74,6 +74,7 @@ NP: .byte 1						; Number Pressed
 RF: .byte 1
 RCPATTERN: .byte 1
 PR: .byte 1						; Price
+QN: .byte 1						; Qantity
 QUANTITY: .byte 18
 
 .cseg
@@ -127,8 +128,11 @@ RESET:
 
 	;initialize PB0 & PB1 button
 	clr temp
+	ldi temp, (1<<PB0)
 	out DDRB, temp	
 	out PORTB, temp			;Set pott B to input
+
+
 
 	;initialize LCD
 	ser temp
@@ -192,7 +196,6 @@ end:
 ;*******************************************************************
 ;interruption stuff starts
 
-
 returning:
 	lds temp, RF
 	cpi temp, 0		; if hasn't reached max, ignore the twist
@@ -223,6 +226,11 @@ clearRF:
 	out PORTE, temp
 	rjmp checkFlagSet
 
+notThousand: 		; Store the new value of the debounce counter.
+	sts TC, r24
+	sts TC+1, r25
+	rjmp checkFlagSet
+
 returnCoin:
 	cpi debounceFlag, 4
 	breq jmpChangeScreen
@@ -237,13 +245,16 @@ returnCoin:
 	clear TC
 	rjmp returning
 
-notThousand: 		; Store the new value of the debounce counter.
-	sts TC, r24
-	sts TC+1, r25
-	rjmp checkFlagSet
+
+
+jmpReturnCoin:
+	rjmp returnCoin
 
 jmpButtonDebounce:
 	rjmp buttonDebounce
+
+jmpKeyDebounce:
+	rjmp keyDebounce
 
 jmpCheckHash:
 	rjmp checkHash
@@ -263,30 +274,54 @@ Timer0OVF:
 checkReturn:
 	lds temp, RC
 	cpi temp, 0
-	brne returnCoin
+	brne jmpreturnCoin
 
 checkFlagSet:
 	cpi waitingFlag, 1		; WF=1 starting screen
-	breq oneSecond
+	breq starting
 	cpi waitingFlag, 2		; out of stock screen: 1.turn the led on
 	breq jmpButtonDebounce
 	cpi waitingFlag, 3		; inserting screen
 	breq jmpCheckHash			; waiting for potentiometer input and keep checking if there is a hash pressed
 	cpi waitingFlag, 4		; delivering screen
-	breq jmpHalfSecond			
+	breq jmpHalfSecond	
+	cpi waitingFlag, 5		; admin screen
+	breq admin		
 	cpi debounceFlag, 1					; DF=1: normal waiting but keypad pressed
-	breq keyDebounce
+	breq jmpKeyDebounce
+	cpi debounceFlag, 5					; DF=1: normal waiting but keypad pressed
+	breq oneSecond
 
 	clear DC
+	clear OC
+	clr counter
 
 	rjmp Endif
 
 jmpChangeScreen:
 	jmp changeScreen
+
+admin:
+	cpi debounceFlag, 4					; DF=1: normal waiting but keypad pressed
+	breq jmpChangeScreen
+	cpi debounceFlag, 1					; DF=1: normal waiting but keypad pressed
+	breq jmpKeyDebounce
+	adiw r31:r30,1			; Everytime i increment DebounceCounter
+	cpi r30,low(1000)		; Check if the debounceCounter reaches ~80ms, we enables the flag
+	ldi temp,high(1000)
+	cpc r31,temp
+	brne jmpEndif
+	ldi DebounceFlag, 2		;enable button to interrpt the program
+	clr r30
+	clr r31
+	clear DC
+jmpEndif:
+	rjmp Endif
 ;////////////////////////////////////////////////////////////
-oneSecond:
+starting:
 	cpi digit, 1			; WF=1 starting screen can be interrupt by 
 	breq jmpChangeScreen	; pressing keypad
+oneSecond:
 	lds r24, OC
 	lds r25, OC+1 
 	adiw r25:r24, 1
@@ -295,6 +330,8 @@ oneSecond:
 	cpc r25, temp
 	brne NotaSecond
 	clear OC
+	cpi debounceFlag, 5					; DF=1: normal waiting but keypad pressed
+	breq countFive
 
 countThree:
 	inc counter
@@ -302,13 +339,26 @@ countThree:
 	breq isThree
 	rjmp Endif
 
+countFive:
+	clr debounceFlag
+	inc counter
+	cpi counter, 5
+	breq isFive
+	rjmp Endif
+
 isThree:
 	ldi debounceFlag, 1				;incase button pressed
 	rjmp changeScreen
 
+isFive:
+	ldi waitingFlag, 6				; triggering to Admin mode
+	clr counter
+	rjmp Endif
+
 NotaSecond:
 	sts OC, r24
 	sts OC+1, r25
+	clr debounceFlag
 	rjmp Endif
 
 ;//////////////////////////////////////////////////////////////////////
@@ -374,19 +424,12 @@ flashLED:
 NotaHalfSecond:
 	sts HC, r24
 	sts HC+1, r25
+	rjmp Endif
+
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
-Endif:
-	pop	r24
-	pop	r25
-	pop	YL
-	pop	YH
-	pop	temp
-	out SREG, temp
-	pop temp
-	reti
-
 checkHash:
+	cpi debounceFlag, 4
+	breq goChangeScreen
 	cpi debounceFlag, 3					; twisted, waiting for main to clr debounce
 	breq Endif
 	clr debounceFlag
@@ -403,6 +446,106 @@ checkHash:
 
 Not50ms:
 	rjmp Endif
+
+goChangeScreen:
+	rjmp changeScreen
+
+Endif:
+	pop	r24
+	pop	r25
+	pop	YL
+	pop	YH
+	pop	temp
+	out SREG, temp
+	pop temp
+	reti
+
+returni:
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
+increaseInv:
+	push temp
+	in temp, SREG
+	push temp
+	lds temp, QN
+	cpi temp, 10
+	breq returni
+	push YL
+	push YH
+	inc temp
+	sbiw Y, 1
+	st Y, temp
+	ldi debounceFlag, 8
+	clr r30
+	clr r31
+	pop YH
+	pop YL
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
+decreaseInv:
+	push temp
+	in temp, SREG
+	push temp
+	lds temp, QN
+	cpi temp, 0
+	breq returni
+	push YL
+	push YH
+	dec temp
+	sbiw Y, 1
+	st Y, temp
+	ldi debounceFlag, 8
+	clr r30
+	clr r31
+	pop YH
+	pop YL
+	pop temp
+	out SREG, temp
+	pop temp
+	reti
+
+PB0_Interrupt:
+	cpi debounceFlag, 2				;if the buttons are still debouncing
+	brne return						;Do nothing
+	cpi waitingFlag, 5
+	breq increaseInv
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr temp
+	out PORTC, temp
+	pop temp
+	out SREG, temp
+	pop temp
+	rjmp changeScreen
+
+PB1_Interrupt:
+	cpi debounceFlag, 2
+	brne return
+	cpi waitingFlag, 5
+	breq decreaseInv
+	push temp
+	in temp, SREG
+	push temp
+	clr r30
+	clr r31
+	clr temp
+	out PORTC, temp
+	pop temp
+	out SREG, temp
+	pop temp
+	rjmp changeScreen
+
+return:
+	reti
 
 POT_Interrupt:
 	cpi debounceFlag, 3
@@ -454,39 +597,6 @@ setPOTMaxFlag:
 	;do_lcd_rdata debounceFlag
 	rjmp continue
 
-return:
-	reti
-
-PB0_Interrupt:
-	cpi debounceFlag, 2				;if the buttons are still debouncing
-	brne return						;Do nothing
-	push temp
-	in temp, SREG
-	push temp
-	clr r30
-	clr r31
-	clr temp
-	out PORTC, temp
-	pop temp
-	out SREG, temp
-	pop temp
-	rjmp changeScreen
-
-PB1_Interrupt:
-	cpi debounceFlag, 2
-	brne return
-	push temp
-	in temp, SREG
-	push temp
-	clr r30
-	clr r31
-	clr temp
-	out PORTC, temp
-	pop temp
-	out SREG, temp
-	pop temp
-	rjmp changeScreen
-
 changeScreen:
 	do_lcd_command 0b00000001 ; clear display
 	do_lcd_data 'S'
@@ -519,13 +629,13 @@ changeScreen:
 	breq returnClear			; clear debounceFlag
 	cpi debounceFlag, 4			; button interrupted
 	breq retCoin			; clear debounceFlag
-
+	clr debounceFlag
 	rjmp Endif
 retCoin:
-	clr debounceFlag
+	ldi debounceFlag, 1
 	clr temp
 	sts RF, temp
-	rjmp Endif
+	rjmp keyDebounce
 
 returnClear:					; return button interrupt
 	clr debounceFlag
@@ -590,23 +700,26 @@ initQuantity:
 initKeypadClear:
 	clr digit
 initKeypad:
-	;out PORTC, waitingFlag
+	;out PORTC, counter
 	; waitingFlag check
 	cpi waitingFlag, 2		; WF=2 DF=1 out of stock screen
 	breq initKeypad
+	cpi waitingFlag, 6		; WF=0 DF=6 enter Admin mode
+	breq goInitAdmin
 	; debounce check
 	cpi debounceFlag, 1		; WF=0 DF=1 key pressed
 	breq initKeypad
 	cpi debounceFlag, 3		; WF=3 DF=3 insertion finished
 	breq goPOT
+	
+	cpi debounceFlag, 8		; WF=5 DF=8 refresh admin screen
+	breq goAdmin
 
     ldi cmask, INITCOLMASK  ; initial column mask
     clr col                 ; initial column
 	clr temp
 	clr temp1
 	clr temp2
-
-	
 
 colloop:
     cpi col, 4
@@ -662,39 +775,98 @@ convert:
 
 goPOT:
 	rjmp POT
+goInitAdmin:
+	rjmp initAdmin
+goAdmin:
+	rjmp adminMode
     
 letters:
 	ldi digit, 1
+	cpi waitingFlag, 5
+	breq letterAdmin
 	ldi debounceFlag, 1
     jmp initKeypad
+
+letterAdmin:
+	cpi row, 0
+	breq A
+	cpi row, 1
+	breq B
+	cpi row, 2
+	breq C
+
+nothing:
+	ldi debounceFlag, 1
+    jmp initKeypad
+
+A:
+	lds temp2, PR
+	cpi temp2, 3
+	breq nothing
+	inc temp2
+	st Y, temp2
+	rjmp adminMode
+
+B:
+	lds temp2, PR
+	cpi temp2, 0
+	breq nothing
+	dec temp2
+	st Y, temp2
+	rjmp adminMode
+C:
+	push temp
+	push YL
+	push YH
+	sbiw Y, 1
+	clr temp
+	st Y, temp
+	pop YH
+	pop YL
+	pop temp
+	rjmp adminMode
 
 symbols:
     cpi col, 0              ; Check if we have a star
     breq star
     cpi col, 1              ; or if we have zero
     breq zero
-	cpi waitingFlag, 3		; inserting screen
+	cpi waitingFlag, 3		; # is pressed inserting screen
 	breq abort
+	cpi waitingFlag, 5		; admin screen
+	breq abortAdmin
 	ldi digit, 1
-	ldi debounceFlag, 1		; # is pressed
+	ldi debounceFlag, 1		; 
     jmp initKeypad
 
 abort:
+	pop YL
+	pop YH
 	pop counter							; coin inserted
 	pop temp2							; coin left
 	pop temp1
 	pop temp							; count left
+	;out PORTC, counter
 	sts RC, counter
 	sts RCPATTERN, temp1
-	;out PORTC, counter
 	clr counter
 	ldi debounceFlag, 4					; # pressed when it's inserting WF=3
 	jmp initKeypad
 
+abortAdmin:
+	ldi debounceFlag, 4			; #is pressed when it's in admin mode WF=5
+	rjmp initKeypad
+
 star:
+	cpi waitingFlag, 0
+	breq goingAdmin
 	ldi digit, 1
 	ldi debounceFlag, 1
     jmp initKeypad
+
+goingAdmin:
+	ldi debounceFlag, 5				; * has been pressed
+	jmp initKeypad
 
 zero:
 	ldi digit, 1
@@ -702,12 +874,41 @@ zero:
 	jmp initKeypad			; no need for that
 
 convert_end:
-
+	sts NP, temp1
+	cpi waitingFlag, 5
+	breq adminMode
 	ldi digit, 1
 	ldi debounceFlag, 1					; disable keypad
 	cpi waitingFlag, 0
 	breq findItem
+	
     rjmp initKeypad         			; restart the main loop
+
+initAdmin:
+	ldi waitingFlag, 5
+	clr r30								; for button debounce
+	clr r31
+	ldi temp1, 1
+	sts NP, temp1
+adminMode:
+	lds temp1, NP
+	do_lcd_command 0b00000001 ; clear display
+
+	do_lcd_data 'A'
+	do_lcd_data 'd'
+	do_lcd_data 'm'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data ' '
+	do_lcd_data 'm'
+	do_lcd_data 'o'
+	do_lcd_data 'd'
+	do_lcd_data 'e'
+	do_lcd_data ' '
+	do_lcd_rdata temp1
+	
+	sts NP, temp1
+	rjmp findItem
 
 findItem:
 	sts NP, temp1						; Store the number been pressed
@@ -721,44 +922,55 @@ inventory:
 	adiw Y, 2
 	rjmp inventory
 
-outOfStock:
-	lds temp, NP
-	do_lcd_command 0b00000001 ; clear display
-	do_lcd_data 'O'
-	do_lcd_data 'u'
-	do_lcd_data 't'
-	do_lcd_data ' '
-	do_lcd_data 'o'
-	do_lcd_data 'f'
-	do_lcd_data ' '
-	do_lcd_data 's'
-	do_lcd_data 't'
-	do_lcd_data 'o'
-	do_lcd_data 'c'
-	do_lcd_data 'k'
+showAdmin:
 	do_lcd_command 0b11000000	; break to the next line
+	lds temp, QN
 	do_lcd_rdata temp
-	rcall sleep_5ms
-
-
-
-	ser temp					; let LED to be on as default
-	out PORTC, temp
-
-	clr r30					; clr button debounce counter
-	clr r31
-	clr counter
-
-	ldi waitingFlag, 2		; enter led subroutine in TFOVR, DF=1
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data ' '
+	do_lcd_data '$'
+	lds temp2, PR
+	do_lcd_rdata temp2
+	;ldi debounceFlag, 9
+	;out PORTC, debounceFlag
 	rjmp initKeypad
+
+goOutOfStock:
+	rjmp outOfStock
+
+makePattern:
+	push temp
+	push temp1
+loopPattern:
+	cpi temp, 0
+	breq showPattern
+	lsl temp1
+	inc temp1
+	dec temp
+	rjmp loopPattern
+showPattern:
+	out PORTC, temp1
+	pop temp1
+	pop temp
+	rjmp showAdmin
 
 inStock:
 	ld temp, Y+				;quantity
-	;mov temp1, temp
+	sts QN, temp
 	ld temp2, Y				;price
+	sts PR, temp2
+
+	cpi waitingFlag, 5
+	breq makePattern
 
 	cpi temp, 0
-	breq outOfStock
+	breq goOutOfStock
 	clr counter
 
 insertCoin:
@@ -783,6 +995,8 @@ insertCoin:
 	push temp1
 	push temp2
 	push counter
+	push YH
+	push YL
 
 initPOT:								; WF=0 DF=1 
 	ldi waitingFlag, 3					; WF=3 DF=0 diable keyPad but "#" in normal mode
@@ -792,6 +1006,8 @@ initPOT:								; WF=0 DF=1
 	sts TF, temp
 	clr counter
 	clr debounceFlag							; for the num of coins inserted
+	clr r30
+	clr r31
 
 POT:
 	cpi debounceFlag, 3					; see if the twist has been twisted 
@@ -799,6 +1015,8 @@ POT:
 	ldi temp, (0<<ADEN | 1<<ADSC | 0<<ADIE)	; disable potentiometer
 	sts ADCSRA, temp
 	clr debounceFlag
+	pop YL
+	pop YH
 	pop counter
 	pop temp2							; coin left
 	pop temp1
@@ -818,6 +1036,34 @@ POT:
 goInsert:
 	rjmp insertCoin
 goInitial:
+	rjmp initKeypad
+
+outOfStock:
+	lds temp, NP
+	do_lcd_command 0b00000001 ; clear display
+	do_lcd_data 'O'
+	do_lcd_data 'u'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'o'
+	do_lcd_data 'f'
+	do_lcd_data ' '
+	do_lcd_data 's'
+	do_lcd_data 't'
+	do_lcd_data 'o'
+	do_lcd_data 'c'
+	do_lcd_data 'k'
+	do_lcd_command 0b11000000	; break to the next line
+	do_lcd_rdata temp
+	rcall sleep_5ms
+	ser temp					; let LED to be on as default
+	out PORTC, temp
+
+	clr r30					; clr button debounce counter
+	clr r31
+	clr counter
+
+	ldi waitingFlag, 2		; enter led subroutine in TFOVR, DF=1
 	rjmp initKeypad
 
 delivery:
