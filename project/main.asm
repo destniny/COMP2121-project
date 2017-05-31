@@ -63,6 +63,7 @@
 	.set T = PC
 .endmacro
 
+
 .dseg
 OC: .byte 2						; One Second Counter   
 HC:	.byte 2						; Half Second Counter
@@ -76,6 +77,8 @@ RCPATTERN: .byte 1
 PR: .byte 1						; Price
 QN: .byte 1						; Qantity
 QUANTITY: .byte 18
+BE: .byte 1
+BF: .byte 1
 
 .cseg
 .org 0x0000
@@ -129,9 +132,11 @@ RESET:
 	out DDRE, temp
 
 	;initialize speaker
-	;clr temp
+	clr temp
+	sts BE, temp
 	;ldi temp, (1<<PB0)
-	;out DDRB, temp
+	ser temp
+	out DDRB, temp
 	;out PORTB, temp			;Set pott B to input
 
 	;initialize LCD
@@ -250,8 +255,6 @@ returnCoin:
 jmpReturnCoin:
 	rjmp returnCoin
 
-jmpButtonDebounce:
-	rjmp buttonDebounce
 
 jmpKeyDebounce:
 	rjmp keyDebounce
@@ -262,6 +265,9 @@ jmpCheckHash:
 jmpHalfSecond:
 	rjmp halfSecond
 
+jmpCheckBeep:
+	rjmp checkBeep
+
 Timer0OVF:
 	push temp
 	in temp, SREG
@@ -270,7 +276,7 @@ Timer0OVF:
 	push YL
 	push r25
 	push r24
-
+	
 checkReturn:
 	lds temp, RC
 	cpi temp, 0
@@ -280,11 +286,11 @@ checkFlagSet:
 	cpi waitingFlag, 1		; WF=1 starting screen
 	breq starting
 	cpi waitingFlag, 2		; out of stock screen: 1.turn the led on
-	breq jmpButtonDebounce
+	breq jmpCheckBeep
 	cpi waitingFlag, 3		; inserting screen
 	breq jmpCheckHash			; waiting for potentiometer input and keep checking if there is a hash pressed
 	cpi waitingFlag, 4		; delivering screen
-	breq jmpHalfSecond	
+	breq jmpCheckBeep	
 	cpi waitingFlag, 5		; admin screen
 	breq admin		
 	cpi debounceFlag, 1					; DF=1: normal waiting but keypad pressed
@@ -302,6 +308,10 @@ jmpChangeScreen:
 	jmp changeScreen
 
 admin:
+	lds temp, BF
+	cpi temp, 1
+	breq oneSecond
+adminContinue:
 	cpi debounceFlag, 4					; DF=1: normal waiting but keypad pressed
 	breq jmpChangeScreen
 	cpi debounceFlag, 1					; DF=1: normal waiting but keypad pressed
@@ -317,6 +327,8 @@ admin:
 	clear DC
 jmpEndif:
 	rjmp Endif
+
+
 ;////////////////////////////////////////////////////////////
 starting:
 	cpi digit, 1			; WF=1 starting screen can be interrupt by 
@@ -330,7 +342,9 @@ oneSecond:
 	cpc r25, temp
 	brne NotaSecond
 	clear OC
-	cpi debounceFlag, 5					; DF=1: normal waiting but keypad pressed
+	cpi waitingFlag, 5
+	breq clearBF
+	cpi debounceFlag, 5					; DF=5: * holding wanna enter admin mode
 	breq countFive
 
 countThree:
@@ -339,6 +353,15 @@ countThree:
 	breq isThree
 	rjmp Endif
 
+adminBeep:
+	rcall beep
+	rjmp adminContinue
+
+clearBF:
+	clr temp
+	sts BF, temp
+	rjmp adminContinue
+
 countFive:
 	clr debounceFlag
 	inc counter
@@ -346,25 +369,31 @@ countFive:
 	breq isFive
 	rjmp Endif
 
-isThree:
-	ldi debounceFlag, 1				;incase button pressed
-	rjmp changeScreen
-
 isFive:
 	ldi waitingFlag, 6				; triggering to Admin mode
+	ldi temp, 1
+	sts BF, temp
+	clear OC
 	clr counter
 	rjmp Endif
 
 NotaSecond:
 	sts OC, r24
 	sts OC+1, r25
+	cpi waitingFlag, 5
+	breq adminBeep
 	clr debounceFlag
 	rjmp Endif
+
+isThree:
+	;ldi debounceFlag, 1				;incase button pressed
+	rjmp changeScreen
 
 ;//////////////////////////////////////////////////////////////////////
 ;######################################################################
 keyDebounce:
 	;out PORTC, debounceFlag
+	rcall beep
 	lds r24, DC
     lds r25, DC+1
     adiw r25:r24, 1			; Increase the temporary counter by one.
@@ -400,6 +429,7 @@ buttonDebounce:
 	cpc r31,temp
 	brne halfSecond
 	ldi DebounceFlag, 2		;enable button to interrpt the program
+
 halfSecond:
 	lds r24, HC
 	lds r25, HC+1 
@@ -428,10 +458,34 @@ NotaHalfSecond:
 	sts HC+1, r25
 	rjmp Endif
 
+doBeep:
+	rcall beep
+	rjmp finishBeep
+
+checkBeep:
+	cpi counter, 2
+	brlt doBeep
+
+finishBeep:
+	cpi waitingFlag, 2
+	breq jmpButtonDebounce
+	cpi waitingFlag, 4
+	breq halfSecond
+	rjmp Endif
+
+
+jmpButtonDebounce:
+	rjmp buttonDebounce
+
+goKeyDebounce:
+	rjmp keyDebounce
+
 ;$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 checkHash:
 	cpi debounceFlag, 4
 	breq goChangeScreen
+	cpi debounceFlag, 1
+	breq gokeyDebounce
 	cpi debounceFlag, 3					; twisted, waiting for main to clr debounce
 	breq Endif
 	clr debounceFlag
@@ -808,6 +862,7 @@ nothing:
     jmp initKeypad
 
 A:
+	ldi debounceFlag, 1
 	lds temp2, PR
 	cpi temp2, 3
 	breq nothing
@@ -816,6 +871,7 @@ A:
 	rjmp adminMode
 
 B:
+	ldi debounceFlag, 1
 	lds temp2, PR
 	cpi temp2, 0
 	breq nothing
@@ -823,6 +879,7 @@ B:
 	st Y, temp2
 	rjmp adminMode
 C:
+	ldi debounceFlag, 1
 	push temp
 	push YL
 	push YH
@@ -839,12 +896,13 @@ symbols:
     breq star
     cpi col, 1              ; or if we have zero
     breq zero
+	ldi digit, 1
+	ldi debounceFlag, 1
 	cpi waitingFlag, 3		; # is pressed inserting screen
 	breq abort
 	cpi waitingFlag, 5		; admin screen
 	breq abortAdmin
-	ldi digit, 1
-	ldi debounceFlag, 1		; 
+	
     jmp initKeypad
 
 abort:
@@ -883,10 +941,11 @@ zero:
 
 convert_end:
 	sts NP, temp1
-	cpi waitingFlag, 5
-	breq adminMode
 	ldi digit, 1
 	ldi debounceFlag, 1					; disable keypad
+	cpi waitingFlag, 5
+	breq adminMode
+	
 	cpi waitingFlag, 0
 	breq findItem
 	
@@ -1038,7 +1097,7 @@ initPOT:								; WF=0 DF=1
 	clr temp							; Flag for two side
 	sts TF, temp
 	clr counter
-	clr debounceFlag							; for the num of coins inserted
+	;clr debounceFlag							; for the num of coins inserted
 	clr r30
 	clr r31
 
@@ -1091,6 +1150,7 @@ outOfStock:
 	rcall sleep_5ms
 	ser temp					; let LED to be on as default
 	out PORTC, temp
+	out PORTG, temp
 
 	clr r30					; clr button debounce counter
 	clr r31
@@ -1124,6 +1184,7 @@ delivery:
 
 	ser temp					; let LED to be on as default
 	out PORTC, temp
+	out PORTG, temp
 
 	ldi temp,(1<<PE4)			; start the motor
 	out PORTE, temp
@@ -1154,6 +1215,7 @@ convert_digits:
 	clr digit
 	;push temp
 	push temp1
+	clr temp1
 	;push temp2
 checkHundreds:
 	cpi temp, 100			; is the number still > 100?
@@ -1275,3 +1337,9 @@ sleep_5ms:
 		rcall sleep_1ms
 		rcall sleep_1ms
 		ret
+beep:
+	lds temp, BE
+	com temp
+	out PORTB, temp
+	sts BE, temp
+	ret
