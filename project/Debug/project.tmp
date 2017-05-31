@@ -39,11 +39,11 @@
   <PB1_Interrupt><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>530</LINE></PB1_Interrupt>
   <Timer0OVF><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>265</LINE></Timer0OVF>
   <POT_Interrupt><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>550</LINE></POT_Interrupt>
-  <lcd_command><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1119</LINE></lcd_command>
-  <lcd_wait><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1140</LINE></lcd_wait>
-  <sleep_5ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1178</LINE></sleep_5ms>
-  <sleep_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1166</LINE></sleep_1ms>
-  <lcd_data><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1128</LINE></lcd_data>
+  <lcd_command><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1186</LINE></lcd_command>
+  <lcd_wait><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1207</LINE></lcd_wait>
+  <sleep_5ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1245</LINE></sleep_5ms>
+  <sleep_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1233</LINE></sleep_1ms>
+  <lcd_data><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1195</LINE></lcd_data>
   <main><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>651</LINE></main>
   <end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>193</LINE></end>
   <returning><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>199</LINE></returning>
@@ -103,7 +103,7 @@
   <letters><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>783</LINE></letters>
   <symbols><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>829</LINE></symbols>
   <convert_end><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>876</LINE></convert_end>
-  <POT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1012</LINE></POT>
+  <POT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1019</LINE></POT>
   <initAdmin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>887</LINE></initAdmin>
   <adminMode><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>893</LINE></adminMode>
   <letterAdmin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>790</LINE></letterAdmin>
@@ -118,19 +118,29 @@
   <goingAdmin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>867</LINE></goingAdmin>
   <findItem><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>913</LINE></findItem>
   <inventory><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>918</LINE></inventory>
-  <inStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>963</LINE></inStock>
+  <inStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>969</LINE></inStock>
   <showAdmin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>925</LINE></showAdmin>
-  <goOutOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>944</LINE></goOutOfStock>
-  <outOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1041</LINE></outOfStock>
-  <makePattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>947</LINE></makePattern>
-  <loopPattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>950</LINE></loopPattern>
-  <showPattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>957</LINE></showPattern>
-  <insertCoin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>976</LINE></insertCoin>
-  <initPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1001</LINE></initPOT>
-  <goInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1038</LINE></goInitial>
-  <goInsert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1036</LINE></goInsert>
-  <delivery><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1069</LINE></delivery>
-  <lcd_wait_loop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1147</LINE></lcd_wait_loop>
-  <delayloop_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1171</LINE></delayloop_1ms>
+  <convert_digits><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1125</LINE></convert_digits>
+  <goOutOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>945</LINE></goOutOfStock>
+  <outOfStock><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1048</LINE></outOfStock>
+  <makePattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>948</LINE></makePattern>
+  <loopPattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>951</LINE></loopPattern>
+  <overTen><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>960</LINE></overTen>
+  <showPattern><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>963</LINE></showPattern>
+  <insertCoin><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>982</LINE></insertCoin>
+  <initPOT><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1008</LINE></initPOT>
+  <goInitial><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1045</LINE></goInitial>
+  <goInsert><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1043</LINE></goInsert>
+  <delivery><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1076</LINE></delivery>
+  <checkHundreds><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1132</LINE></checkHundreds>
+  <hundredsDigit><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1163</LINE></hundredsDigit>
+  <showHundredsDigit><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1175</LINE></showHundredsDigit>
+  <checkTensInit><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1138</LINE></checkTensInit>
+  <checkTens><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1140</LINE></checkTens>
+  <tensDigit><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1170</LINE></tensDigit>
+  <showTensDigit><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1179</LINE></showTensDigit>
+  <checkOnes><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1148</LINE></checkOnes>
+  <lcd_wait_loop><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1214</LINE></lcd_wait_loop>
+  <delayloop_1ms><FILE>C:\Users\Edward\Desktop\project\project\main.asm</FILE><LINE>1238</LINE></delayloop_1ms>
  </LABELS>
 </ASSEMBLER_INFO>

@@ -93,15 +93,15 @@ QUANTITY: .byte 18
 .org ADCCaddr
 	jmp POT_Interrupt
 
-defitem "1",  "4"  ;9  coin  quantity
-defitem "2",  "3"  ;8
-defitem "1",  "0"  ;7
-defitem "2",  "8"  ;6
-defitem	"1",  "2"  ;5
-defitem "2",  "9"  ;4
-defitem "1",  "4"  ;3
-defitem "7",  "3"  ;2
-defitem "1",  "0"  ;1
+defitem 1,  5  ;9  coin  quantity
+defitem 2,  3  ;8
+defitem 1,  0  ;7
+defitem 2,  255  ;6
+defitem	1,  2  ;5
+defitem 2,  9  ;4
+defitem 1, 4  ;3
+defitem 7,  3  ;2
+defitem 1,  0  ;1
 
 
 RESET:
@@ -471,7 +471,7 @@ increaseInv:
 	in temp, SREG
 	push temp
 	lds temp, QN
-	cpi temp, 10
+	cpi temp, 255
 	breq returni
 	push YL
 	push YH
@@ -685,7 +685,7 @@ main:
 initQuantity:
 	;initialize the quantity
 	lpm temp,Z
-	subi temp, 48
+	;subi temp, 48
 	sbiw Z, 1
 	inc counter
 	st Y+,temp
@@ -925,7 +925,8 @@ inventory:
 showAdmin:
 	do_lcd_command 0b11000000	; break to the next line
 	lds temp, QN
-	do_lcd_rdata temp
+	rcall convert_digits
+	;do_lcd_rdata temp
 	do_lcd_data ' '
 	do_lcd_data ' '
 	do_lcd_data ' '
@@ -948,11 +949,16 @@ makePattern:
 	push temp
 	push temp1
 loopPattern:
+	cpi temp1, 0xFF
+	breq overTen 
 	cpi temp, 0
 	breq showPattern
 	lsl temp1
 	inc temp1
 	dec temp
+	rjmp loopPattern
+overTen:
+	clr temp1
 	rjmp loopPattern
 showPattern:
 	out PORTC, temp1
@@ -974,6 +980,12 @@ inStock:
 	clr counter
 
 insertCoin:
+	push temp
+	push temp1
+	push temp2
+	push counter
+	push YH
+	push YL
 	do_lcd_command 0b00000001 ; clear display
 	do_lcd_data 'I'
 	do_lcd_data 'n'
@@ -987,16 +999,11 @@ insertCoin:
 	do_lcd_data 'i'
 	do_lcd_data 'n'
 	do_lcd_data 's'
-	do_lcd_rdata temp			; count left
+	rcall convert_digits
+	;do_lcd_rdata temp			; count left
 	;do_lcd_rdata temp			; coin Inserted
 	do_lcd_command 0b11000000	; break to the next line
 	do_lcd_rdata temp2			; coin left
-	push temp
-	push temp1
-	push temp2
-	push counter
-	push YH
-	push YL
 
 initPOT:								; WF=0 DF=1 
 	ldi waitingFlag, 3					; WF=3 DF=0 diable keyPad but "#" in normal mode
@@ -1114,6 +1121,66 @@ delivery:
 ;************************************  *   *    *   *  **********************************
 ;**************************************               ***********************************
 ;*****************************************          *************************************
+
+convert_digits:
+	push digit
+	push temp
+	clr digit
+	;push temp
+	push temp1
+	;push temp2
+checkHundreds:
+	cpi temp, 100			; is the number still > 100?
+	brsh hundredsDigit		; if YES - increase hundreds digit
+	cpi digit, 0		
+	brne showHundredsDigit	; If digit ! 0 => this digit goes into stack
+		
+checkTensInit:
+	clr digit
+checkTens:
+	cpi temp, 10			; is the number still > 10? 
+	brsh tensDigit			; if YES - increase tens digit
+	cpi temp1, 0
+	brne showTensDigit
+	cpi digit, 0			; is tens digit = 0?
+	brne showTensDigit		; if digit != 0 push it to the stack	
+	
+checkOnes:
+	clr digit
+	mov digit, temp			; whatever is left in temp is the ones digit
+	; now all digit temp data is in the stack
+	; unload data into temp2, temp1, temp
+	; and the do_lcd_rdata in reverse order
+	; this will display the currentNumber value to LCD
+	; it's not an elegant solution but will do for now
+	do_lcd_rdata digit
+	pop temp1
+	pop temp
+	pop digit
+	ret
+
+; hundreds digit
+hundredsDigit:
+	ldi temp1, 1
+	inc digit
+	subi temp, 100			; and subtract a 100 from the number
+	rjmp checkHundreds		; check hundreds again
+
+; tens digit
+tensDigit:
+	inc digit				; if YES increase the digit count
+	subi temp, 10			; and subtract a 10 from the number
+	rjmp checkTens			; check tens again
+
+showHundredsDigit:
+	do_lcd_rdata digit
+	rjmp checkTensInit
+
+showTensDigit:
+	do_lcd_rdata digit
+	rjmp checkOnes
+
+
 ; lcd stuff
 
 lcd_command:
