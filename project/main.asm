@@ -99,8 +99,8 @@ defitem 1,  0  ;7
 defitem 2,  255  ;6
 defitem	1,  2  ;5
 defitem 2,  9  ;4
-defitem 1, 4  ;3
-defitem 7,  3  ;2
+defitem 1,  4  ;3
+defitem 2,  3  ;2
 defitem 1,  0  ;1
 
 
@@ -113,9 +113,11 @@ RESET:
 	;initilize LED
     ser temp
 	out DDRC, temp			;Set port C to output
+	out DDRG, temp
 	clr temp
-	out PORTC, temp			;pass the lower pattern to portC
-	
+	out PORTC, temp
+	out PORTG, temp
+
 	;initialize timer counter
 	clear DC
 	clear OC
@@ -126,13 +128,11 @@ RESET:
 	ldi temp,(1<<PE4)
 	out DDRE, temp
 
-	;initialize PB0 & PB1 button
-	clr temp
-	ldi temp, (1<<PB0)
-	out DDRB, temp	
-	out PORTB, temp			;Set pott B to input
-
-
+	;initialize speaker
+	;clr temp
+	;ldi temp, (1<<PB0)
+	;out DDRB, temp
+	;out PORTB, temp			;Set pott B to input
 
 	;initialize LCD
 	ser temp
@@ -389,6 +389,7 @@ notHundred: 		; Store the new value of the debounce counter.
 turnOnLED:
 	ser temp
 	out PORTC, temp
+	out PORTG, temp
 	cpi waitingFlag, 4
 	breq halfSecond
 
@@ -419,6 +420,7 @@ flashLED:
 	breq turnOnLED		
 	clr temp			; even
 	out PORTC, temp
+	out PORTG, temp
 	rjmp Endif
 
 NotaHalfSecond:
@@ -522,6 +524,7 @@ PB0_Interrupt:
 	clr r31
 	clr temp
 	out PORTC, temp
+	out PORTG, temp
 	pop temp
 	out SREG, temp
 	pop temp
@@ -539,6 +542,7 @@ PB1_Interrupt:
 	clr r31
 	clr temp
 	out PORTC, temp
+	out PORTG, temp
 	pop temp
 	out SREG, temp
 	pop temp
@@ -563,7 +567,7 @@ POT_Interrupt:
     cpc r25, temp
 	breq setPOTMinFlag
 	cpi r24, 0xFF		; ADCL/H  is 10 bits reg
-	ldi temp, 3
+	ldi temp, 0b11
     cpc r25, temp
 	breq setPOTMaxFlag
 
@@ -613,7 +617,11 @@ changeScreen:
 	do_lcd_command 0b11000000	; break to the next line
 	rcall sleep_5ms
 
-	ldi temp,(0<<PE4)			; start the motor
+	clr temp
+	out PORTC, temp
+	out PORTG, temp
+
+	ldi temp,(0<<PE4)			; stop the motor
 	out PORTE, temp
 
 	; Any time counting should be cleared
@@ -918,9 +926,12 @@ findItem:
 inventory:
 	dec temp1
 	cpi temp1, 0
-	breq inStock
+	breq goInStock
 	adiw Y, 2
 	rjmp inventory
+
+goInStock:
+	rjmp inStock
 
 showAdmin:
 	do_lcd_command 0b11000000	; break to the next line
@@ -948,20 +959,35 @@ goOutOfStock:
 makePattern:
 	push temp
 	push temp1
+	push temp2
+	clr temp1
+	clr temp2
 loopPattern:
-	cpi temp1, 0xFF
-	breq overTen 
 	cpi temp, 0
 	breq showPattern
+	cpi temp1, 0xFF
+	breq overEight
 	lsl temp1
 	inc temp1
 	dec temp
+	
 	rjmp loopPattern
-overTen:
+
+overEight:
+	cpi temp2, 0b11
+	brne notTen
 	clr temp1
+	clr temp2
+	rjmp loopPattern
+notTen:
+	lsl temp2
+	inc temp2
+	dec temp
 	rjmp loopPattern
 showPattern:
 	out PORTC, temp1
+	out PORTG, temp2
+	pop temp2
 	pop temp1
 	pop temp
 	rjmp showAdmin
